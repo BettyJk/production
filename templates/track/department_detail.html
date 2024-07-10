@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ department.name }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'track/css/styles.css' %}">
+    <script src="{% static 'js/navigation.js' %}"></script>
+    <style>
+        /* Define your CSS styles here or link an external stylesheet */
+        .green {
+            background-color: lightgreen;
+        }
+        .orange {
+            background-color: orange;
+        }
+        .red {
+            background-color: lightcoral;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ department.name }}</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Hour</th>
+                {% for uep in ueps %}
+                    <th>{{ uep.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for hour in "0123456789" %}
+                <tr>
+                    <td>{{ hour }}:00</td>
+                    {% for uep in ueps %}
+                        <td class="{% if record.number_of_products >= uep.target.theoretical_goal %}green{% elif record.number_of_products >= uep.target.theoretical_goal - 3 %}orange{% else %}red{% endif %}">
+                            {% for record in records %}
+                                {% if record.hour.hour == hour and record.uep.id == uep.id %}
+                                    {{ record.number_of_products }}
+                                    <form action="{% url 'update_record' record.id %}" method="post">
+                                        {% csrf_token %}
+                                        <input type="number" name="number_of_products" value="{{ record.number_of_products }}">
+                                        <input type="submit" value="Update">
+                                    </form>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button onclick="navigate(-1)">Back</button>
+    <button onclick="navigate(1)">Forward</button>
+    <button onclick="exitPage()">Exit</button>
+</body>
+</html>
