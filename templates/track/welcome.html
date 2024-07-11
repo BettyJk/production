@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'track/css/styles.css' %}">
+</head>
+<body>
+    <h1>Welcome</h1>
+    <ul>
+        {% for department in departments %}
+            <li><a href="{% url 'department_detail' department.id %}">{{ department.name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
