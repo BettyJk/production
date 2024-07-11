@@ -1,0 +1,35 @@
+{% extends 'track/base.html' %}
+
+{% block title %}Department Detail{% endblock %}
+
+{% block content %}
+<div class="department-container">
+    <h1>{{ department.name }} Details</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Hour</th>
+                {% for uep in ueps %}
+                    <th>{{ uep.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+                <tr>
+                    <td>{{ record.hour }}</td>
+                    {% for uep in ueps %}
+                        <td>
+                            {% for r in records %}
+                                {% if r.uep == uep and r.hour == record.hour %}
+                                    {{ r.number_of_products }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

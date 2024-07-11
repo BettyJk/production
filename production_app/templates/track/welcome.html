@@ -1,0 +1,14 @@
+{% extends 'track/base.html' %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<div class="welcome-container">
+    <h1>Welcome, {{ user.username }}!</h1>
+    <p>You have successfully logged in.</p>
+    <ul>
+        <li><a href="{% url 'track:dashboard' %}">Home</a></li>
+        <li><a href="{% url 'logout' %}">Logout</a></li>
+    </ul>
+</div>
+{% endblock %}

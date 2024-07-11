@@ -1,0 +1,14 @@
+{% extends 'track/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Departments</h1>
+    <ul>
+        {% for department in departments %}
+            <li><a href="{% url 'track:department_detail' department.id %}">{{ department.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
