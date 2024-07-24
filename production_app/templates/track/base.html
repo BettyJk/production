@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}My Application{% endblock %}</title>
+    <title>{% block title %}Mon Application{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'track/css/style.css' %}">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <main>
-        {% block content %}{% endblock %}
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
     </main>
+    <script src="{% static 'track/js/script.js' %}"></script>
 </body>
 </html>

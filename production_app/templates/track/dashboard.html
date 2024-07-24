@@ -1,14 +1,15 @@
 {% extends 'track/base.html' %}
+{% load static %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Tableau de bord{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <h1>Departments</h1>
+<aside class="sidebar">
+    <h1>Départements</h1>
     <ul>
-        {% for department in departments %}
-            <li><a href="{% url 'track:department_detail' department.id %}">{{ department.name }}</a></li>
-        {% endfor %}
-    </ul>
-</div>
+                {% for departement in departements %}
+                    <li><a href="{% url 'track:input' department_id=departement.pk %}">{{ departement.name }}</a></li>
+                {% endfor %}
+            </ul>
+</aside>
 {% endblock %}

@@ -2,21 +2,23 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.exceptions import ValidationError
 
-from django.contrib.auth.models import AbstractUser
-
-class CustomUser(AbstractUser):
-
-    class Meta:
-        swappable = 'AUTH_USER_MODEL'
-
-CustomUser._meta.get_field('groups').remote_field.related_name = 'custom_user_groups'
-CustomUser._meta.get_field('user_permissions').remote_field.related_name = 'custom_user_permissions'
-
 class Department(models.Model):
     name = models.CharField(max_length=100, verbose_name='Nom du département')
 
     def __str__(self):
         return self.name
+
+class CustomUser(AbstractUser):
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, verbose_name='Département')
+
+    def save(self, *args, **kwargs):
+        if not self.full_name and self.first_name and self.last_name:
+            self.full_name = f"{self.first_name} {self.last_name}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.username
 
 class Goal(models.Model):
     theoretical_goal = models.IntegerField(default=33, verbose_name='Objectif théorique')
@@ -37,17 +39,28 @@ class Record(models.Model):
     SHIFTS = [
         ('A', 'Shift A'),
         ('B', 'Shift B'),
-        ('C', 'Shift C'),
+        ('N', 'Shift N'),
     ]
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, verbose_name='Utilisateur')
     number_of_products = models.IntegerField(verbose_name='Nombre de produits')
     uep = models.ForeignKey(UEP, on_delete=models.CASCADE, verbose_name='UEP')
-    shift = models.CharField(max_length=20, choices=SHIFTS, verbose_name='Shift')
+    shift = models.CharField(max_length=1, choices=SHIFTS, verbose_name='Shift')
     hour = models.DateTimeField(verbose_name='Heure')
 
+    @property
+    def time_range(self):
+        if self.shift == 'A':
+            return "6:00 - 14:00"
+        elif self.shift == 'B':
+            return "14:00 - 22:00"
+        elif self.shift == 'N':
+            return "22:00 - 6:00"
+        else:
+            return ""
+
     def __str__(self):
-        return str(self.number_of_products)
+        return str(self.number_of_products)  # __str__ should return a string
 
 class Loss(models.Model):
     record = models.ForeignKey(Record, on_delete=models.CASCADE, verbose_name='Enregistrement')
@@ -77,3 +90,12 @@ class Loss(models.Model):
 
     def __str__(self):
         return f"Perte pour {self.record} (Logistique : {self.logistic_loss}, Production : {self.production_loss})"
+
+class Metric(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    metric_name = models.CharField(max_length=100)
+    value = models.FloatField()
+    date = models.DateField()
+
+    def __str__(self):
+        return f"{self.metric_name} - {self.value}"

@@ -1,0 +1,52 @@
+/* styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f1f1f1;
+}
+
+header img {
+    height: 50px;
+}
+
+header h1 {
+    text-align: center;
+    flex-grow: 1;
+}
+
+header button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+header button:hover {
+    background-color: #45a049;
+}
+
+#hours-container, #table-container {
+    margin: 20px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}

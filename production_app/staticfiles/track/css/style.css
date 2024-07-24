@@ -1,0 +1,391 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+/* Body styles and layout */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: default;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.body-right {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.body-center {
+  justify-content: center;
+  width: 100%;
+}
+
+/* Login container styles */
+.login-container {
+  width: 400px;
+  padding: 40px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  margin-right: 100px;
+}
+
+/* Left background styles */
+.background-left {
+  width: 50%;
+  height: 100%;
+  background-color: #28377C;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 20px;
+}
+
+.background-left .logo {
+  width: auto;
+  height: auto;
+}
+
+.login-container .logo {
+  width: 30px;
+  height: 30px;
+}
+
+/* Login form styles */
+.login-form {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form h1 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.login-form .form-group {
+  margin-bottom: 15px;
+}
+
+.login-form .form-control {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.login-form .btn {
+  padding: 10px 20px;
+  background-color: #28377C;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.login-form .btn-primary {
+  background-color: #28377C;
+}
+
+.login-form a {
+  color: #28377C;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+/* Additional styles for the page structure */
+.div {
+  background-color: #28377c;
+  display: flex;
+  flex-direction: column;
+  padding: 80px 0 46px;
+}
+
+.div-2 {
+  background-color: #28377c;
+  margin-top: 23px;
+  width: 100%;
+  padding: 0 66px 80px;
+}
+
+@media (max-width: 991px) {
+  .div-2 {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+}
+
+.div-3 {
+  gap: 20px;
+  display: flex;
+}
+
+@media (max-width: 991px) {
+  .div-3 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0px;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  line-height: normal;
+  width: 50%;
+  margin-left: 0px;
+}
+
+@media (max-width: 991px) {
+  .column {
+    width: 100%;
+  }
+}
+
+.div-4 {
+  z-index: 10;
+  display: flex;
+  margin-top: 186px;
+  flex-direction: column;
+}
+
+@media (max-width: 991px) {
+  .div-4 {
+    max-width: 100%;
+    margin-top: 40px;
+  }
+}
+
+.div-5 {
+  color: #fff;
+  font: 400 60px/60px Akshar, sans-serif; /* Adjusted font size */
+}
+
+@media (max-width: 991px) {
+  .div-5 {
+    max-width: 100%;
+    font-size: 40px;
+    line-height: 43px;
+  }
+}
+
+.div-6 {
+  align-self: center;
+  display: flex;
+  margin-top: 237px;
+  width: 381px;
+  max-width: 100%;
+  gap: 20px;
+  font-size: 16px; /* Adjusted font size */
+  color: #000103;
+  font-weight: 700;
+  white-space: nowrap;
+  justify-content: space-between;
+}
+
+@media (max-width: 991px) {
+  .div-6 {
+    margin-top: 40px;
+    white-space: initial;
+  }
+}
+
+.div-7 {
+  border-radius: 24px;
+  background-color: #96a1d2;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 30px;
+  justify-content: center;
+  align-items: center;
+  margin-top: -20px; /* Negative margin to move closer to the text */
+}
+
+@media (max-width: 991px) {
+  .div-7 {
+    white-space: initial;
+    padding: 0 20px;
+  }
+}
+
+.img {
+  aspect-ratio: 1.23;
+  object-fit: auto;
+  object-position: center;
+  width: 63px;
+  align-self: center;
+}
+
+.div-8 {
+  font-family: Amaranth, sans-serif;
+  margin-top: 8px;
+}
+
+.div-9 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 991px) {
+  .div-9 {
+    white-space: initial;
+  }
+}
+
+.div-10 {
+  border-radius: 24px;
+  background-color: #96a1d2;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 21px;
+  margin-top: -20px; /* Negative margin to move closer to the text */
+}
+
+@media (max-width: 991px) {
+  .div-10 {
+    white-space: initial;
+    padding: 0 20px;
+  }
+}
+
+.img-2 {
+  aspect-ratio: 1;
+  object-fit: auto;
+  object-position: center;
+  width: 54px;
+  align-self: center;
+}
+
+.div-11 {
+  font-family: Amaranth, sans-serif;
+  margin-top: 5px;
+}
+
+.column-2 {
+  display: flex;
+  flex-direction: column;
+  line-height: normal;
+  width: 50%;
+  margin-left: 20px;
+}
+
+@media (max-width: 991px) {
+  .column-2 {
+    width: 100%;
+  }
+}
+
+.div-12 {
+  border-radius: 0px 0px 0px 0px;
+  margin-top: -103px;
+  width: 581px;
+  max-width: 100%;
+  height: 794px;
+}
+
+@media (max-width: 991px) {
+  .div-12 {
+    margin-top: -39px;
+  }
+}
+
+.shape-svg {
+  position: absolute;
+  top: auto;
+  right: 1px;
+  width: auto;
+  height: 500px;
+}
+
+.message1 {
+  color: #fff;
+  max-width: 409px;
+  font: 400 24px Baloo, sans-serif;
+}
+
+.sidebar {
+  border-radius: 20px;
+  background: linear-gradient(
+    112deg,
+    rgba(40, 55, 124, 0.94) 59.3%,
+    rgba(40, 55, 124, 0) 100%
+  );
+  backdrop-filter: blur(60px);
+  display: flex;
+  width: 200px; /* Increased width for sidebar */
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 100%;
+  padding: 100px 20px; /* Increased padding */
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+}
+
+.sidebar ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar ul li {
+  font-family: Oswald, sans-serif;
+  border-radius: 15px;
+  box-shadow: 0px 3.5px 5.5px 0px rgba(0, 0, 0, 0.02);
+  background-color: #8a98da;
+  margin-top: 13px;
+  width: 100%;
+  align-items: start;
+  justify-content: center;
+  padding: 20px 15px;
+}
+
+.sidebar ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.sidebar ul li a:hover {
+  background-color: #1b2a57;
+  display: block;
+}
+
+/* Content styles */
+.content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
+/* Header styles */
+header {
+  background-color: #28377C;
+  color: white;
+  padding: 10px;
+  text-align: center;
+}
+.error-message {
+    text-align: center;
+    margin: 50px;
+}
+
+.error-message h2 {
+    color: red;
+}
+
+.error-message a {
+    margin-top: 20px;
+}

@@ -1,22 +1,28 @@
 {% extends 'track/base.html' %}
-
-{% block title %}Login{% endblock %}
+{% load static %}
+{% block title %}Connexion{% endblock %}
+{% block body_class %}body-right{% endblock %}
 
 {% block content %}
+<div class="background-left">
+    <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Logo" class="logo">
+</div>
 <div class="login-container">
-    <p><a href="{% url 'track:register' %}">Register</a></p>
-    <h1>Login</h1>
-    <form method="post" action="{% url 'login' %}">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" class="form-control" required autofocus>
-        </div>
-        <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+    <p><a href="{% url 'track:register' %}">S'inscrire</a></p>
+    <div class="login-form">
+        <h1>Connexion</h1>
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" class="form-control" required autofocus>
+            </div>
+            <div class="form-group">
+                <label for="password">Mot de passe :</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Connexion</button>
+        </form>
+    </div>
 </div>
 {% endblock %}

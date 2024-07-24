@@ -1,37 +1,41 @@
 {% extends 'track/base.html' %}
-
-{% block title %}Register{% endblock %}
+{% load static %}
+{% block title %}Inscription{% endblock %}
+{% block body_class %}body-right{% endblock %}
 
 {% block content %}
-<div class="registration-container">
-    <h1>Register</h1>
-    <form method="post" action="{% url 'track:register' %}">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
-        <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div class="form-group">
-            <label for="first_name">First Name:</label>
-            <input type="text" id="first_name" name="first_name">
-        </div>
-        <div class="form-group">
-            <label for="last_name">Last Name:</label>
-            <input type="text" id="last_name" name="last_name">
-        </div>
-        <div class="form-group">
-            <label for="password1">Password:</label>
-            <input type="password" id="password1" name="password1" required>
-        </div>
-        <div class="form-group">
-            <label for="password2">Confirm Password:</label>
-            <input type="password" id="password2" name="password2" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Register</button>
-    </form>
+<div class="background-left">
+    <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Logo" class="logo">
+</div>
+<div class="login-container">
+    <a href="{% url 'login' %}">
+        <img src="{% static 'track/images/icons8-back-arrow-48.svg' %}" alt="Retour" class="logo">
+    </a>
+    <div class="login-form">
+        <h1>Inscription</h1>
+        <form method="post" action="{% url 'track:register' %}">
+            {% csrf_token %}
+            {% if error_message %}
+                <div class="alert alert-danger">{{ error_message }}</div>
+            {% endif %}
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur :</label>
+                <input type="text" id="username" name="username" class="form-control" value="{{ request.POST.username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="full_name">Nom complet :</label>
+                <input type="text" id="full_name" name="full_name" class="form-control" value="{{ request.POST.full_name }}">
+            </div>
+            <div class="form-group">
+                <label for="password1">Mot de passe :</label>
+                <input type="password" id="password1" name="password1" class="form-control" value="{{ request.POST.password1 }}" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="password2">Confirmer le mot de passe :</label>
+                <input type="password" id="password2" name="password2" class="form-control" value="{{ request.POST.password2 }}" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary">Inscription</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
