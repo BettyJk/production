@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,153 +5,161 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAISIE - Département {{ department.name }}</title>
     {% load static %}
-
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="icon" href="{% static 'track/images/favicon.ico' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'track/css/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'track/css/css/flatpickr.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'track/css/input.css' %}">
     <style>
-        .shift-timetable {
-            display: none;
-        }
-        .zone {
-            cursor: pointer;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 5px;
             padding: 10px;
-            margin: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background-color: #fff;
+            height: 100px; /* Adjust as needed */
+        }
+        .grid-item {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
-        }
-        .zone-container {
-            width: 100%;
+            justify-content: center;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             text-align: center;
-            display: flex;
-            flex-direction: column;
+            font-size: 12px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
-        .container-fluid {
-            padding: 0;
+        .grid-item:hover {
+            background-color: #e2e2e2;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .grid-item-number { background-color: #cce5ff; }
+        .grid-item-loss { background-color: #d4edda; }
+        .grid-item-logistic-loss { background-color: #f8d7da; }
+        .grid-item-production-loss { background-color: #fff3cd; }
+        .field {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .value {
+            font-size: 1.2em;
+            color: #333;
+        }
+        .grid-item-loss {
+            background-color: #d6a8d2; /* Pastel purple color */
         }
     </style>
 </head>
-<body class="saisie-page">
+<body class="saisie-page" data-department-id="{{ department.id }}">
     <div class="container-fluid">
-        <!-- First row: Logo, Department Name, and Buttons -->
-        <div class="row mt-3 align-items-center" style="background-color: #28377C;">
-            <div class="col-md-4">
-                <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Logo" class="img-fluid">
+        <!-- First row: Logo, Department Name, and Download Button -->
+        <div class="row mt-5 py-4 align-items-center">
+            <div class="col-md-4 text-left">
+                <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Stellantis Logo" class="img-fluid">
             </div>
             <div class="col-md-4 text-center">
-                <h1 style="color: white;">{{ department.name }}</h1>
+                <h1>{{ department.name }}</h1>
             </div>
-            <div class="col-md-4 text-end">
-                <button class="btn btn-primary" onclick="extractData()">Extract Data</button>
+            <div class="col-md-4 text-right">
+                <button class="btn btn-primary">Télécharger</button>
             </div>
         </div>
 
-        <!-- Second row: Flatpickr Date Picker and Shift Buttons -->
-        <div class="row mt-3 align-items-center">
-            <div class="col-md-4 text-center">
-                <button id="button1" class="btn btn-success">SHIFT A</button>
-                <button id="button2" class="btn btn-warning">SHIFT B</button>
-                <button id="button3" class="btn btn-danger">SHIFT N</button>
+        <!-- Second row: Flatpickr Date Picker and Additional Buttons -->
+        <div class="row mt-3 mt-adjusted align-items-center">
+            <div class="col-lg-4 text-center">
+                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                    <button id="button1" class="btn btn-info">SHIFT A</button>
+                    <button id="button2" class="btn btn-info">SHIFT B</button>
+                    <button id="button3" class="btn btn-info">SHIFT N</button>
+                </div>
             </div>
-            <div class="col-md-4 text-center">
-                <input id="flatpickr" type="text" class="form-control" placeholder="Select Date">
+            <div class="col-lg-4 text-center">
+                <input id="flatpickr" data-toggle="flatpickr" placeholder="Select Date.." class="form-control flatpickr-input active" type="text" readonly="readonly" style="width: 200px;">
             </div>
-            <div class="col-md-4 text-center">
-                <button id="button4" class="btn btn-primary">Show Graphs</button>
-            </div>
+            <div class="col-lg-4"></div> <!-- Adjust as needed -->
         </div>
 
-        <!-- Third row: Timetable -->
+        <!-- Table Placeholder -->
         <div class="row mt-3">
-            <div class="col-md-12">
-                <table class="table table-bordered">
+            <div class="col-12">
+                <table class="table principale" id="uep-table">
                     <thead>
-                        <tr>
+                        <tr id="table-header">
                             <th>Heure</th>
                             {% for uep in ueps %}
-                                <th>{{ uep.name }}</th>
+                                <th class="text-center" data-uep-id="{{ uep.id }}">
+                                    {{ uep.name }}
+                                    <img src="{% static 'track/images/eye-outline.svg' %}" class="header-icon" alt="View">
+                                </th>
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody id="shiftA-timetable" class="shift-timetable"></tbody>
-                    <tbody id="shiftB-timetable" class="shift-timetable"></tbody>
-                    <tbody id="shiftN-timetable" class="shift-timetable"></tbody>
+                    <tbody id="table-body">
+                        <!-- Table body will be populated here -->
+                    </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- Hidden row template -->
-    <template id="row-template">
-        <tr>
-            <td class="hour"></td>
-            {% for uep in ueps %}
-                <td>
-                    <div class="zone" data-uep="{{ uep.id }}" data-zone="zone">
-                        <div class="record"></div>
-                        <div class="loss"></div>
-                        <div class="logistic-loss"></div>
-                        <div class="logistic-comment"></div>
-                        <div class="production-loss"></div>
-                        <div class="production-comment"></div>
-                        <button class="btn btn-secondary enter-data" data-bs-toggle="modal" data-bs-target="#dataModal">Enter Data</button>
-                    </div>
-                </td>
-            {% endfor %}
-        </tr>
-    </template>
-
-    <!-- Modal -->
-    <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="zoneForm">
-                    {% csrf_token %}
+        <!-- Modal for form submission -->
+        <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
+                        <h5 class="modal-title" id="dataModalLabel">UEP Information</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <input type="hidden" id="uepHiddenInput" name="uep_id">
-                        <input type="hidden" id="zoneHiddenInput" name="zone">
-                        <input type="hidden" id="shiftHiddenInput" name="shift">
-                        <input type="hidden" id="hourHiddenInput" name="hour">
-                        <div class="mb-3">
-                            <label for="number_of_products" class="form-label">Number of Products</label>
-                            <input type="text" class="form-control" id="number_of_products" name="number_of_products" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="logistic_loss" class="form-label">Logistic Loss</label>
-                            <input type="text" class="form-control" id="logistic_loss" name="logistic_loss">
-                        </div>
-                        <div class="mb-3">
-                            <label for="logistic_comment" class="form-label">Logistic Comment</label>
-                            <input type="text" class="form-control" id="logistic_comment" name="logistic_comment">
-                        </div>
-                        <div class="mb-3">
-                            <label for="production_loss" class="form-label">Production Loss</label>
-                            <input type="text" class="form-control" id="production_loss" name="production_loss">
-                        </div>
-                        <div class="mb-3">
-                            <label for="production_comment" class="form-label">Production Comment</label>
-                            <input type="text" class="form-control" id="production_comment" name="production_comment">
-                        </div>
-                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                        <form id="dataForm">
+                            {% csrf_token %}
+                            <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
+                            <input type="hidden" id="uepHiddenInput" name="uep"> <!-- Changed from uep_id to uep -->
+                            <input type="hidden" id="shiftHiddenInput" name="shift">
+                            <input type="hidden" id="hourHiddenInput" name="hour">
+                            <div class="form-group">
+                                <label for="numberOfProducts">Number of Products</label>
+                                <input type="number" class="form-control" id="numberOfProducts" name="number_of_products" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="logisticLoss">Logistic Loss</label>
+                                <input type="number" class="form-control" id="logisticLoss" name="logistic_loss" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productionLoss">Production Loss</label>
+                                <input type="number" class="form-control" id="productionLoss" name="production_loss" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="logisticComment">Logistic Comment</label>
+                                <textarea class="form-control" id="logisticComment" name="logistic_comment" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="productionComment">Production Comment</label>
+                                <textarea class="form-control" id="productionComment" name="production_comment" required></textarea>
+                            </div>
+                        </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="submit" form="dataForm" class="btn btn-primary">Save changes</button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="{% static 'track/js/js/jquery-3.7.1.js' %}"></script>
+    <!-- Bootstrap JS -->
+    <script src="{% static 'track/js/js/bootstrap.min.js' %}" crossorigin="anonymous"></script>
+    <!-- Flatpickr -->
+    <script src="{% static 'track/js/js/flatpickr.min.js' %}"></script>
+    <!-- Custom script -->
     <script src="{% static 'track/js/script.js' %}"></script>
+</body>
+</html>

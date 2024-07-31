@@ -30,7 +30,7 @@ class RecordAdmin(admin.ModelAdmin):
 @admin.register(Loss)
 class LossAdmin(admin.ModelAdmin):
     list_display = ('record', 'logistic_loss', 'production_loss', 'logistic_comment', 'production_comment')
-    search_fields = ('record__number_of_products', 'logistic_loss', 'production_loss', 'logistic_comment', 'production_comment')
+    search_fields = ('record__uep__name', 'record__user__username', 'logistic_loss', 'production_loss', 'logistic_comment', 'production_comment')
 
 @admin.register(Metric)
 class MetricAdmin(admin.ModelAdmin):

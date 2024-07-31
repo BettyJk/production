@@ -110,3 +110,7 @@ MESSAGE_TAGS = {
     message_constants.WARNING: 'warning',
     message_constants.ERROR: 'danger',
 }
+# settings.py
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'track.exceptions.custom_exception_handler',
+}

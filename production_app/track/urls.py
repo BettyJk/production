@@ -2,10 +2,11 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
 
-from . import views
-from .views import CustomLoginView, WelcomeView, RegisterView, InputView, DepartmentViewSet, \
-    UEPViewSet, RecordViewSet, LossViewSet, CustomUserViewSet, GoalViewSet, save_data, get_data, \
-    DepartementListCreateView, DeleteRecordView
+from .views import (
+    CustomLoginView, WelcomeView, RegisterView, InputView, DepartmentViewSet,
+    UEPViewSet, RecordViewSet, LossViewSet, CustomUserViewSet, GoalViewSet,
+    DepartementListCreateView, DeleteRecordView, DashboardView, department_records,
+)
 
 router = DefaultRouter()
 router.register(r'users', CustomUserViewSet)
@@ -25,10 +26,9 @@ urlpatterns = [
     path('input/<int:department_id>/', InputView.as_view(), name='input'),
     path('error/', TemplateView.as_view(template_name='track/error.html'), name='error'),
     path('api/', include(router.urls)),
-    path('api/save-data/', save_data, name='save_data'),
-    path('api/get-data/', get_data, name='get_data'),
-    path('departements/<int:pk>/', DepartementListCreateView.as_view(), name='departement-detail'),
-    path('dashboard/', views.DashboardView, name='dashboard'),
+    path('departments/<int:pk>/', DepartementListCreateView.as_view(), name='department-detail'),
+    path('dashboard/', DashboardView, name='dashboard'),
     path('delete-record/<int:record_id>/', DeleteRecordView.as_view(), name='delete_record'),
-
+    path('api/records/<int:department_id>/<str:shift>/<str:hour>/', department_records, name='department_records'),
+    path('records/shift-and-hour/', RecordViewSet.as_view({'get': 'by_shift_and_hour'}), name='records-by-shift-and-hour')
 ]

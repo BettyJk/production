@@ -1,52 +1,49 @@
-/* styles.css */
-
-body {
-    font-family: Arial, sans-serif;
+/* Remove borders for the main table */
+table.principale, table.principale th, table.principale td {
+    border: none !important; /* Remove borders from the main table and its cells */
 }
-
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #f1f1f1;
+table.principale td.heure{
+    width: 100px;
 }
-
-header img {
-    height: 50px;
-}
-
-header h1 {
-    text-align: center;
-    flex-grow: 1;
-}
-
-header button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
+.eye {
+    width: 16px; /* Adjust the width of the icon */
+    height: 16px; /* Adjust the height of the icon */
     cursor: pointer;
 }
 
-header button:hover {
-    background-color: #45a049;
+.eye:hover {
+    opacity: 0.7;
+}
+/* Style for inside table */
+table.principale .table.inside {
+    margin-bottom: 0%;
+    cursor: pointer;
+    border-radius: 8px; /* Apply rounded corners to the entire table */
+    overflow: hidden; /* Ensure rounded corners are visible */
+    border: 1px solid #ccc; /* Gray border around the table */
+    box-shadow: 0 0px 8px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Ensure the inside table takes full width */
 }
 
-#hours-container, #table-container {
-    margin: 20px 0;
+/* Style for cells within the inside table */
+table.principale .table.inside td {
+    width: 50%;
+    border: 1px solid #bcb7b7 !important; /* Gray border for cells */
+    text-align: center; /* Center text in cells */
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
+table.principale .table.inside:hover {
+    box-shadow: 8px 8px 15px rgba(0, 0, 0, 0.2);
 }
 
-table, th, td {
-    border: 1px solid black;
+.container-fluid{
+    background-color: #28377C;
+    color: #fff;
 }
-
-th, td {
-    padding: 8px;
-    text-align: center;
+.header-icon {
+    width: 16px; /* Adjust size as needed */
+    height: 16px; /* Adjust size as needed */
+    vertical-align: middle;
+    margin-left: 8px; /* Space between text and icon */
+    cursor: pointer;
 }
