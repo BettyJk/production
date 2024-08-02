@@ -6,67 +6,28 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const tableHeader = document.querySelector('#table-header');
-    const uepIds = [];
-    tableHeader.querySelectorAll('th').forEach((th, index) => {
-        if (index > 0) {  // Skip the first column (hours)
-            uepIds.push(th.dataset.uepId);  // Ensure UEP id is stored in data-uep-id attribute
-        }
-    });
+    const uepIds = Array.from(tableHeader.querySelectorAll('th[data-uep-id]')).map(th => th.dataset.uepId);
 
     let selectedDate = null;
     let selectedShift = null;
-    let selectedUepIndex = null;
 
-    function fetchAndDisplayData(shift, hour) {
-        if (!shift || !hour) {
-            console.warn('Shift or hour is not selected.');
+    async function fetchAndDisplayData(shift, date) {
+        if (!shift || !date) {
+            console.warn('Shift or date is not selected.');
             return;
         }
 
-        console.log(`Fetching data for shift: ${shift}, hour: ${hour}`);
-        fetch(`/api/records/?shift=${shift}&hour=${hour}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error fetching data: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Data fetched:', data);
-                populateTable(shift, data);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                alert(`Error fetching data: ${error.message || 'Unknown error'}`);
-            });
-    }
-
-    function fetchAndDisplayLosses(shift, hour) {
-        if (!shift || !hour) {
-            console.warn('Shift or hour is not selected.');
-            return;
+        try {
+            const response = await fetch(`/api/records/?shift=${shift}&date=${date}`);
+            if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
+            const data = await response.json();
+            populateTable(shift, data);
+        } catch (error) {
+            console.error('Error fetching data:', error);
         }
-
-        console.log(`Fetching losses for shift: ${shift}, hour: ${hour}`);
-        fetch(`/api/losses/?shift=${shift}&hour=${hour}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error fetching losses: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Losses data fetched:', data);
-                // Handle the fetched data as needed, e.g., update the UI
-            })
-            .catch(error => {
-                console.error('Error fetching losses:', error);
-                alert(`Error fetching losses: ${error.message || 'Unknown error'}`);
-            });
     }
 
     function populateTable(shift, data) {
-        console.log('Populating table with data:', data);
         const tableBody = document.getElementById('table-body');
         if (!tableBody) return;
 
@@ -78,222 +39,233 @@ document.addEventListener('DOMContentLoaded', function() {
             hourCell.textContent = hourRange;
             row.appendChild(hourCell);
 
-            for (let i = 0; i < uepIds.length; i++) {
+            uepIds.forEach((uepId) => {
                 const cell = document.createElement('td');
                 const gridContainer = document.createElement('div');
                 gridContainer.className = 'grid-container';
 
                 const hourData = data.records ? data.records[hourRange] : [];
-                const record = hourData[i] || {};
+                const record = hourData.find(record => record.uep === parseInt(uepId, 10)) || {};
                 const numberOfProducts = record.number_of_products || 0;
                 const losses = record.losses || [];
                 const logisticLoss = losses[0] ? losses[0].logistic_loss : 0;
                 const productionLoss = losses[0] ? losses[0].production_loss : 0;
+                const totalLoss = 33 - numberOfProducts;
 
-                const gridItemNumber = document.createElement('div');
-                gridItemNumber.className = 'grid-item grid-item-number';
-                gridItemNumber.textContent = numberOfProducts;
-                gridContainer.appendChild(gridItemNumber);
+                gridContainer.innerHTML = `
+                    <div class="grid-item grid-item-number">${numberOfProducts}</div>
+                    <div class="grid-item grid-item-loss">${totalLoss}</div>
+                    <div class="grid-item grid-item-logistic-loss">${logisticLoss}</div>
+                    <div class="grid-item grid-item-production-loss">${productionLoss}</div>
+                `;
 
-                const gridItemLogisticLoss = document.createElement('div');
-                gridItemLogisticLoss.className = 'grid-item grid-item-logistic-loss';
-                gridItemLogisticLoss.textContent = logisticLoss;
-                gridContainer.appendChild(gridItemLogisticLoss);
-
-                const gridItemProductionLoss = document.createElement('div');
-                gridItemProductionLoss.className = 'grid-item grid-item-production-loss';
-                gridItemProductionLoss.textContent = productionLoss;
-                gridContainer.appendChild(gridItemProductionLoss);
-
-                const gridItemLoss = document.createElement('div');
-                gridItemLoss.className = 'grid-item grid-item-loss';
-                const totalLoss = logisticLoss + productionLoss;
-                gridItemLoss.textContent = totalLoss;
-                gridContainer.appendChild(gridItemLoss);
+                const lossColor = (record && Object.keys(record).length > 0) ?
+                    (totalLoss < 3 ? '#93c47d' : (totalLoss <= 10 ? '#f6b26b' : '#e06666')) : '#ffffff';
+                gridContainer.style.backgroundColor = lossColor;
 
                 gridContainer.addEventListener('click', () => {
                     $('#dataModal').modal('show');
-                    selectedUepIndex = i;
-                    document.getElementById('uepHiddenInput').value = uepIds[selectedUepIndex];
+                    document.getElementById('uepHiddenInput').value = uepId;
                     document.getElementById('shiftHiddenInput').value = selectedShift;
                     document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
+                    document.getElementById('recordIdHiddenInput').value = record.id || '';
+
+                    document.querySelectorAll('.grid-container').forEach(container => {
+                        container.querySelectorAll('.grid-item').forEach(item => item.style.pointerEvents = 'none');
+                    });
                 });
 
                 cell.appendChild(gridContainer);
                 row.appendChild(cell);
-            }
+            });
 
             tableBody.appendChild(row);
         });
     }
 
     function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [cookieName, cookieValue] = cookie.trim().split('=');
+            if (cookieName === name) return decodeURIComponent(cookieValue);
         }
-        return cookieValue;
+        return null;
     }
 
-    function saveRecordAndLosses(formData) {
-        const uep = formData.get('uep');
-        const shift = formData.get('shift');
-        const hour = formData.get('hour');
-        const number_of_products = parseInt(formData.get('number_of_products'), 10) || 0;
-        const logistic_loss = parseFloat(formData.get('logistic_loss')) || 0;
-        const production_loss = parseFloat(formData.get('production_loss')) || 0;
-        const logistic_comment = formData.get('logistic_comment');
-        const production_comment = formData.get('production_comment');
-
-        // Create or update record
+    async function saveRecordAndLosses(formData) {
         const recordData = {
             user: formData.get('user'),
-            shift,
-            hour: `${selectedDate} ${hour.split(' ')[1]}`,
-            uep: parseInt(uep, 10),
-            number_of_products
+            shift: formData.get('shift'),
+            hour: `${selectedDate} ${formData.get('hour').split(' ')[1]}`,
+            uep: parseInt(formData.get('uep'), 10),
+            number_of_products: parseInt(formData.get('number_of_products'), 10) || 0
         };
 
-        return fetch('/api/records/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(recordData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(`Error creating/updating record: ${data.detail || 'Unknown error'}`);
+        try {
+            const recordsResponse = await fetch(`/api/records/?shift=${recordData.shift}&hour=${recordData.hour}`);
+            const records = await recordsResponse.json();
+            const existingRecord = records.find(record => record.uep === recordData.uep);
+
+            let response;
+            if (existingRecord) {
+                response = await fetch(`/api/records/${existingRecord.id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(recordData)
+                });
+            } else {
+                response = await fetch('/api/records/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(recordData)
                 });
             }
-            return response.json();
-        })
-        .then(recordData => {
-            console.log('Record saved successfully:', recordData);
 
-            // Check if record ID is present
-            if (!recordData.id) {
-                throw new Error('Record ID is missing in the response.');
-            }
+            const savedRecord = await response.json();
+            if (!savedRecord.id) throw new Error('Record ID is missing in the response.');
 
-            // Create or update loss
             const lossData = {
-                record: recordData.id,
-                logistic_loss,
-                production_loss,
-                logistic_comment,
-                production_comment
+                record: savedRecord.id,
+                logistic_loss: parseFloat(formData.get('logistic_loss')) || 0,
+                production_loss: parseFloat(formData.get('production_loss')) || 0,
+                logistic_comment: formData.get('logistic_comment'),
+                production_comment: formData.get('production_comment')
             };
 
-            return fetch('/api/losses/', {
+            const lossResponse = await fetch('/api/losses/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify(lossData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        console.error('Error response:', text);
-                        throw new Error(`Error creating/updating loss: ${text}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Loss saved successfully:', data);
             });
-        })
-        .catch(error => {
+
+            if (!lossResponse.ok) throw new Error(`Error creating/updating loss: ${await lossResponse.text()}`);
+
+            $('#dataModal').modal('hide');
+            fetchAndDisplayData(selectedShift, selectedDate);
+        } catch (error) {
             console.error('Error saving data:', error);
-            alert(`Error saving data: ${error.message || 'Unknown error'}`);
-        });
+        }
     }
 
-    const dataForm = document.getElementById('dataForm');
-    if (dataForm) {
-        dataForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const formData = new FormData(this);
-            saveRecordAndLosses(formData)
-                .catch(error => {
-                    console.error('Error saving data:', error);
-                    alert(`Error saving data: ${error.message || 'Unknown error'}`);
-                });
-        });
-    }
-
-    const flatpickrElement = document.getElementById('flatpickr');
-    if (flatpickrElement) {
-        flatpickr(flatpickrElement, {
-            onChange: function(selectedDates, dateStr) {
-                selectedDate = dateStr;
-                console.log(`Selected date: ${selectedDate}`);
-                if (selectedShift) {
-                    shiftHours[selectedShift].forEach(hourRange => {
-                        const hour = `${selectedDate} ${hourRange.split('-')[0]}`;
-                        fetchAndDisplayData(selectedShift, hour);
-                        fetchAndDisplayLosses(selectedShift, hour);
-                    });
+    function setupFlatpickr() {
+        const flatpickrElement = document.getElementById('flatpickr');
+        if (flatpickrElement) {
+            flatpickr(flatpickrElement, {
+                onChange: function(selectedDates, dateStr) {
+                    selectedDate = dateStr;
+                    if (selectedShift) fetchAndDisplayData(selectedShift, selectedDate);
                 }
-            }
+            });
+        }
+    }
+
+    function setupShiftButtons() {
+        const shiftButtons = document.querySelectorAll('.btn-group .btn');
+        shiftButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                selectedShift = this.dataset.shift;
+                if (selectedDate) fetchAndDisplayData(selectedShift, selectedDate);
+            });
         });
     }
 
-    const button1 = document.getElementById('button1');
-    if (button1) {
-        button1.addEventListener('click', function() {
+    function setupModal() {
+        const modalCloseButton = document.querySelector('#dataModal .btn-close');
+        if (modalCloseButton) {
+            modalCloseButton.addEventListener('click', () => $('#dataModal').modal('hide'));
+        }
+
+        const modalDeleteButton = document.querySelector('#dataModal .btn-delete');
+        if (modalDeleteButton) {
+            modalDeleteButton.addEventListener('click', () => {
+                const recordId = document.getElementById('recordIdHiddenInput').value;
+                deleteRecord(recordId);
+            });
+        }
+    }
+
+    async function deleteRecord(recordId) {
+        if (!recordId) {
+            alert('No record ID provided.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/records/${recordId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            if (!response.ok) throw new Error(`Error deleting record: ${response.status}`);
+            console.log('Record deleted successfully.');
+
+            const lossesResponse = await fetch(`/api/losses/?record=${recordId}`, { method: 'GET' });
+            const losses = await lossesResponse.json();
+            const deletePromises = losses.map(loss =>
+                fetch(`/api/losses/${loss.id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+            );
+            await Promise.all(deletePromises);
+            console.log('Associated losses deleted successfully.');
+
+            $('#dataModal').modal('hide');
+            fetchAndDisplayData(selectedShift, selectedDate);
+        } catch (error) {
+            console.error('Error deleting record and losses:', error);
+        }
+    }
+
+    function setupFormSubmission() {
+        const form = document.getElementById('dataForm');
+        if (form) {
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const formData = new FormData(form);
+                await saveRecordAndLosses(formData);
+            });
+        }
+    }
+
+    function setDefaultDateAndShift() {
+        const currentDate = new Date();
+        const defaultDate = currentDate.toISOString().split('T')[0];
+        selectedDate = defaultDate;
+
+        const currentHour = currentDate.getHours();
+        if (currentHour >= 6 && currentHour < 14) {
             selectedShift = 'A';
-            console.log('Selected shift: A');
-            if (selectedDate) {
-                shiftHours[selectedShift].forEach(hourRange => {
-                    const hour = `${selectedDate} ${hourRange.split('-')[0]}`;
-                    fetchAndDisplayData(selectedShift, hour);
-                    fetchAndDisplayLosses(selectedShift, hour);
-                });
-            }
-        });
-    }
-
-    const button2 = document.getElementById('button2');
-    if (button2) {
-        button2.addEventListener('click', function() {
+        } else if (currentHour >= 14 && currentHour < 22) {
             selectedShift = 'B';
-            console.log('Selected shift: B');
-            if (selectedDate) {
-                shiftHours[selectedShift].forEach(hourRange => {
-                    const hour = `${selectedDate} ${hourRange.split('-')[0]}`;
-                    fetchAndDisplayData(selectedShift, hour);
-                    fetchAndDisplayLosses(selectedShift, hour);
-                });
-            }
-        });
+        } else {
+            selectedShift = 'N';
+        }
+
+        const flatpickrElement = document.getElementById('flatpickr');
+        if (flatpickrElement) flatpickrElement._flatpickr.setDate(defaultDate);
+
+        const shiftButton = document.querySelector(`.btn-group .btn[data-shift="${selectedShift}"]`);
+        if (shiftButton) shiftButton.classList.add('active');
+
+        fetchAndDisplayData(selectedShift, selectedDate);
     }
 
-    const button3 = document.getElementById('button3');
-    if (button3) {
-        button3.addEventListener('click', function() {
-            selectedShift = 'N';
-            console.log('Selected shift: N');
-            if (selectedDate) {
-                shiftHours[selectedShift].forEach(hourRange => {
-                    const hour = `${selectedDate} ${hourRange.split('-')[0]}`;
-                    fetchAndDisplayData(selectedShift, hour);
-                    fetchAndDisplayLosses(selectedShift, hour);
-                });
-            }
-        });
-    }
+    setupFlatpickr();
+    setupShiftButtons();
+    setupModal();
+    setupFormSubmission();
+    setDefaultDateAndShift();
 });

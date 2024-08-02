@@ -9,6 +9,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'track/css/css/flatpickr.min.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'track/css/input.css' %}">
     <style>
+
         .grid-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -39,7 +40,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         .grid-item-number { background-color: #cce5ff; }
-        .grid-item-loss { background-color: #d4edda; }
+        .grid-item-loss { background-color: #d6a8d2; /* Pastel purple color */ }
         .grid-item-logistic-loss { background-color: #f8d7da; }
         .grid-item-production-loss { background-color: #fff3cd; }
         .field {
@@ -50,8 +51,20 @@
             font-size: 1.2em;
             color: #333;
         }
-        .grid-item-loss {
-            background-color: #d6a8d2; /* Pastel purple color */
+        .form-horizontal .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .form-horizontal .form-group label {
+            flex: 0 0 25%;
+            max-width: 25%;
+            margin-bottom: 0;
+            font-weight: bold;
+        }
+        .form-horizontal .form-group .form-control {
+            flex: 1;
+            margin-left: 1rem;
         }
     </style>
 </head>
@@ -74,9 +87,9 @@
         <div class="row mt-3 mt-adjusted align-items-center">
             <div class="col-lg-4 text-center">
                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                    <button id="button1" class="btn btn-info">SHIFT A</button>
-                    <button id="button2" class="btn btn-info">SHIFT B</button>
-                    <button id="button3" class="btn btn-info">SHIFT N</button>
+                    <button id="button1" class="btn btn-info" data-shift="A">SHIFT A</button>
+                    <button id="button2" class="btn btn-info" data-shift="B">SHIFT B</button>
+                    <button id="button3" class="btn btn-info" data-shift="N">SHIFT N</button>
                 </div>
             </div>
             <div class="col-lg-4 text-center">
@@ -108,49 +121,54 @@
         </div>
 
         <!-- Modal for form submission -->
-        <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="dataModalLabel">UEP Information</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <!-- Modal -->
+<div class="modal fade" id="dataModal" tabindex="-1" role="dialog" aria-labelledby="dataModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="dataForm">
+                   {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="number_of_products">Number of Products</label>
+                        <input type="number" class="form-control" id="number_of_products" name="number_of_products" placeholder="Enter number of products" required>
                     </div>
-                    <div class="modal-body">
-                        <form id="dataForm">
-                            {% csrf_token %}
-                            <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
+                    <div class="form-group">
+                        <label for="logistic_loss">Logistic Loss</label>
+                        <input type="number" step="0.01" class="form-control" id="logistic_loss" name="logistic_loss" placeholder="Enter logistic loss">
+                    </div>
+                    <div class="form-group">
+                        <label for="production_loss">Production Loss</label>
+                        <input type="number" step="0.01" class="form-control" id="production_loss" name="production_loss" placeholder="Enter production loss">
+                    </div>
+                    <div class="form-group">
+                        <label for="logistic_comment">Logistic Comment</label>
+                        <textarea class="form-control" id="logistic_comment" name="logistic_comment" rows="3" placeholder="Enter logistic comment"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="production_comment">Production Comment</label>
+                        <textarea class="form-control" id="production_comment" name="production_comment" rows="3" placeholder="Enter production comment"></textarea>
+                    </div>
+                     <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
                             <input type="hidden" id="uepHiddenInput" name="uep"> <!-- Changed from uep_id to uep -->
                             <input type="hidden" id="shiftHiddenInput" name="shift">
                             <input type="hidden" id="hourHiddenInput" name="hour">
-                            <div class="form-group">
-                                <label for="numberOfProducts">Number of Products</label>
-                                <input type="number" class="form-control" id="numberOfProducts" name="number_of_products" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="logisticLoss">Logistic Loss</label>
-                                <input type="number" class="form-control" id="logisticLoss" name="logistic_loss" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="productionLoss">Production Loss</label>
-                                <input type="number" class="form-control" id="productionLoss" name="production_loss" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="logisticComment">Logistic Comment</label>
-                                <textarea class="form-control" id="logisticComment" name="logistic_comment" required></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="productionComment">Production Comment</label>
-                                <textarea class="form-control" id="productionComment" name="production_comment" required></textarea>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" form="dataForm" class="btn btn-primary">Save changes</button>
-                    </div>
+                            <input type="hidden" id="recordIdHiddenInput" name="record_id">
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-close" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger btn-delete">Delete</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
+    </div>
+</div>
     </div>
 
     <!-- jQuery -->

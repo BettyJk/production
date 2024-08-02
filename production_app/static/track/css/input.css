@@ -1,13 +1,13 @@
 /* Remove borders for the main table */
 table.principale, table.principale th, table.principale td {
-    border: none !important; /* Remove borders from the main table and its cells */
+    border: none !important;
 }
 table.principale td.heure{
     width: 100px;
 }
 .eye {
-    width: 16px; /* Adjust the width of the icon */
-    height: 16px; /* Adjust the height of the icon */
+    width: 16px;
+    height: 16px;
     cursor: pointer;
 }
 
@@ -46,4 +46,15 @@ table.principale .table.inside:hover {
     vertical-align: middle;
     margin-left: 8px; /* Space between text and icon */
     cursor: pointer;
+}
+.modal-body .form-group {
+    margin-bottom: 1rem;
+}
+
+.modal-body .form-control {
+    width: 100%;
+}
+
+.modal-footer .btn {
+    min-width: 100px;
 }

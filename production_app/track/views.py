@@ -233,9 +233,31 @@ from rest_framework.decorators import action
 from .models import Record, Loss
 from .serializers import RecordSerializer, LossSerializer
 
+from rest_framework.exceptions import ValidationError
+from .models import Department
+
+
 class RecordViewSet(viewsets.ModelViewSet):
     queryset = Record.objects.all()
     serializer_class = RecordSerializer
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        date = data.get('date')
+        hour = data.get('hour')
+        shift = data.get('shift')
+        department_id = data.get('department')
+
+        if not date or not hour or not shift or not department_id:
+            raise ValidationError('Date, hour, shift, and department are required fields.')
+
+        department = Department.objects.get(id=department_id)
+
+        # Check for existing record
+        if Record.objects.filter(date=date, hour=hour, shift=shift, department=department).exists():
+            raise ValidationError('A record for the same date, hour, shift, and department already exists.')
+
+        return super().create(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def by_shift_and_hour(self, request):
@@ -246,9 +268,11 @@ class RecordViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(records, many=True)
             return Response(serializer.data)
         return Response({'error': 'Shift and hour are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 import logging
 from rest_framework import viewsets, status
-from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from .models import Loss, Record
 from .serializers import LossSerializer, RecordSerializer
 
@@ -262,17 +286,27 @@ class LossViewSet(viewsets.ModelViewSet):
 
         data = request.data
         record_id = data.get('record')
-        losses = Loss.objects.filter(record_id=record_id)
-        if losses.exists():
-            loss = losses.first()
-            serializer = self.get_serializer(loss, data=data, partial=True)
+        if not record_id:
+            return Response({'error': 'Record ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            losses = Loss.objects.filter(record_id=record_id)
+            if losses.exists():
+                loss = losses.first()
+                serializer = self.get_serializer(loss, data=data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                logger.info(f"Updated Loss ID: {loss.id} for Record ID: {record_id}")
+                return Response(serializer.data)
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            self.perform_create(serializer)
+            logger.info(f"Created new Loss for Record ID: {record_id}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error while creating/updating loss: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class GoalViewSet(viewsets.ModelViewSet):
     queryset = Goal.objects.all()
