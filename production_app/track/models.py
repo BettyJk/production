@@ -55,28 +55,40 @@ class UEP(models.Model):
     def __str__(self):
         return self.name
 
-from django.db import models
-from django.contrib.auth.models import User
 
 class Record(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     number_of_products = models.IntegerField()
     uep = models.ForeignKey('UEP', on_delete=models.CASCADE)
-    shift = models.CharField(max_length=1, choices=[('A', 'Shift A'), ('B', 'Shift B'), ('N', 'Shift N')])
+    SHIFT_CHOICES = (
+        ('A', 'Shift A'),
+        ('B', 'Shift B'),
+        ('N', 'Shift N')
+    )
+    shift = models.CharField(max_length=1, choices=SHIFT_CHOICES)
     hour = models.DateTimeField()
 
+    class Meta:
+        unique_together = ('user', 'shift', 'hour', 'uep')
+
+    def clean(self):
+        if Record.objects.filter(user=self.user, shift=self.shift, hour=self.hour,
+                                 uep=self.uep).exists() and not self.pk:
+            raise ValidationError('Record with this combination already exists.')
+
     def __str__(self):
-        return f"Record for {self.uep} at {self.hour}"
+        return f"Record for UEP {self.uep} at {self.hour}"
 
 class Loss(models.Model):
     record = models.ForeignKey(Record, related_name='losses', on_delete=models.CASCADE)
-    logistic_loss = models.FloatField()
-    production_loss = models.FloatField()
-    logistic_comment = models.TextField(blank=True, null=True)
-    production_comment = models.TextField(blank=True, null=True)
+    logistic_loss = models.FloatField(default=0)
+    production_loss = models.FloatField(default=0)
+    logistic_comment = models.TextField(blank=True, default='' )
+    production_comment = models.TextField(blank=True, default='')
 
     def __str__(self):
-        return f"Loss for record {self.record.id}"
+        return f"Loss for Record ID {self.record.id}"
+
 
 # Metric model
 class Metric(models.Model):

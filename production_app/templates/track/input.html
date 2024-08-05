@@ -9,7 +9,6 @@
     <link rel="stylesheet" type="text/css" href="{% static 'track/css/css/flatpickr.min.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'track/css/input.css' %}">
     <style>
-
         .grid-container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -19,7 +18,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             background-color: #fff;
-            height: 100px; /* Adjust as needed */
+            height: 100px;
         }
         .grid-item {
             display: flex;
@@ -40,32 +39,9 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         .grid-item-number { background-color: #cce5ff; }
-        .grid-item-loss { background-color: #d6a8d2; /* Pastel purple color */ }
+        .grid-item-loss { background-color: #d6a8d2; }
         .grid-item-logistic-loss { background-color: #f8d7da; }
         .grid-item-production-loss { background-color: #fff3cd; }
-        .field {
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-        .value {
-            font-size: 1.2em;
-            color: #333;
-        }
-        .form-horizontal .form-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .form-horizontal .form-group label {
-            flex: 0 0 25%;
-            max-width: 25%;
-            margin-bottom: 0;
-            font-weight: bold;
-        }
-        .form-horizontal .form-group .form-control {
-            flex: 1;
-            margin-left: 1rem;
-        }
     </style>
 </head>
 <body class="saisie-page" data-department-id="{{ department.id }}">
@@ -95,7 +71,7 @@
             <div class="col-lg-4 text-center">
                 <input id="flatpickr" data-toggle="flatpickr" placeholder="Select Date.." class="form-control flatpickr-input active" type="text" readonly="readonly" style="width: 200px;">
             </div>
-            <div class="col-lg-4"></div> <!-- Adjust as needed -->
+            <div class="col-lg-4"></div>
         </div>
 
         <!-- Table Placeholder -->
@@ -121,54 +97,54 @@
         </div>
 
         <!-- Modal for form submission -->
-        <!-- Modal -->
-<div class="modal fade" id="dataModal" tabindex="-1" role="dialog" aria-labelledby="dataModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form id="dataForm">
-                   {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="number_of_products">Number of Products</label>
-                        <input type="number" class="form-control" id="number_of_products" name="number_of_products" placeholder="Enter number of products" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="logistic_loss">Logistic Loss</label>
-                        <input type="number" step="0.01" class="form-control" id="logistic_loss" name="logistic_loss" placeholder="Enter logistic loss">
-                    </div>
-                    <div class="form-group">
-                        <label for="production_loss">Production Loss</label>
-                        <input type="number" step="0.01" class="form-control" id="production_loss" name="production_loss" placeholder="Enter production loss">
-                    </div>
-                    <div class="form-group">
-                        <label for="logistic_comment">Logistic Comment</label>
-                        <textarea class="form-control" id="logistic_comment" name="logistic_comment" rows="3" placeholder="Enter logistic comment"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="production_comment">Production Comment</label>
-                        <textarea class="form-control" id="production_comment" name="production_comment" rows="3" placeholder="Enter production comment"></textarea>
-                    </div>
-                     <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
-                            <input type="hidden" id="uepHiddenInput" name="uep"> <!-- Changed from uep_id to uep -->
+        <div class="modal fade" id="dataModal" tabindex="-1" role="dialog" aria-labelledby="dataModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form id="dataForm">
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="number_of_products">Number of Products</label>
+                                <input type="number" class="form-control" id="number_of_products" name="number_of_products" placeholder="Enter number of products" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="logistic_loss">Logistic Loss</label>
+                                <input type="number" step="0.01" class="form-control" id="logistic_loss" name="logistic_loss" placeholder="Enter logistic loss">
+                            </div>
+                            <div class="form-group">
+                                <label for="production_loss">Production Loss</label>
+                                <input type="number" step="0.01" class="form-control" id="production_loss" name="production_loss" placeholder="Enter production loss">
+                            </div>
+                            <div class="form-group">
+                                <label for="logistic_comment">Logistic Comment</label>
+                                <textarea class="form-control" id="logistic_comment" name="logistic_comment" rows="3" placeholder="Enter logistic comment"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="production_comment">Production Comment</label>
+                                <textarea class="form-control" id="production_comment" name="production_comment" rows="3" placeholder="Enter production comment"></textarea>
+                            </div>
+                            <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
+                            <input type="hidden" id="uepHiddenInput" name="uep">
                             <input type="hidden" id="shiftHiddenInput" name="shift">
                             <input type="hidden" id="hourHiddenInput" name="hour">
                             <input type="hidden" id="recordIdHiddenInput" name="record_id">
+                        </div>
+                        <div class="modal-footer">
+                            <pre id="jsonDisplay"></pre> <!-- JSON display area -->
+                            <button type="button" class="btn btn-secondary btn-close" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-danger btn-delete">Delete</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-close" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-danger btn-delete">Delete</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
     </div>
 
     <!-- jQuery -->

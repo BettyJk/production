@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from rest_framework import viewsets, status
 from django.contrib.auth import get_user_model, authenticate, login
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
@@ -132,10 +132,6 @@ def DashboardView(request):
     else:
         departements = Department.objects.filter(id=request.user.department.id)
     return render(request, 'track/dashboard.html', {'departements': departements})
-
-
-
-
 class InputView(LoginRequiredMixin, View):
     template_name = 'track/input.html'
 
@@ -193,16 +189,13 @@ class InputView(LoginRequiredMixin, View):
                 production_comment = request.POST.get(f'production_comment_{uep.id}_{hour}')
 
                 if number_of_products:
-                    record, created = Record.objects.get_or_create(
+                    record, created = Record.objects.update_or_create(
                         user=request.user,
                         uep=uep,
-                        shift=shift,  # Use the shift from form data
+                        shift=shift,
                         hour=hour,
                         defaults={'number_of_products': number_of_products}
                     )
-                    if not created:
-                        record.number_of_products = number_of_products
-                        record.save()
 
                     if logistic_loss or production_loss or logistic_comment or production_comment:
                         Loss.objects.update_or_create(
@@ -217,47 +210,9 @@ class InputView(LoginRequiredMixin, View):
 
         return redirect(reverse('track:input', kwargs={'department_id': department_id}))
 
-
-
-class DepartmentViewSet(viewsets.ModelViewSet):
-    queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
-
-class UEPViewSet(viewsets.ModelViewSet):
-    queryset = UEP.objects.all()
-    serializer_class = UEPSerializer
-# views.py
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from .models import Record, Loss
-from .serializers import RecordSerializer, LossSerializer
-
-from rest_framework.exceptions import ValidationError
-from .models import Department
-
-
 class RecordViewSet(viewsets.ModelViewSet):
     queryset = Record.objects.all()
     serializer_class = RecordSerializer
-
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        date = data.get('date')
-        hour = data.get('hour')
-        shift = data.get('shift')
-        department_id = data.get('department')
-
-        if not date or not hour or not shift or not department_id:
-            raise ValidationError('Date, hour, shift, and department are required fields.')
-
-        department = Department.objects.get(id=department_id)
-
-        # Check for existing record
-        if Record.objects.filter(date=date, hour=hour, shift=shift, department=department).exists():
-            raise ValidationError('A record for the same date, hour, shift, and department already exists.')
-
-        return super().create(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'])
     def by_shift_and_hour(self, request):
@@ -269,43 +224,40 @@ class RecordViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         return Response({'error': 'Shift and hour are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-
-import logging
-from rest_framework import viewsets, status
-from rest_framework.exceptions import ValidationError
-from .models import Loss, Record
-from .serializers import LossSerializer, RecordSerializer
-
 class LossViewSet(viewsets.ModelViewSet):
     queryset = Loss.objects.all()
     serializer_class = LossSerializer
 
-    def create(self, request, *args, **kwargs):
-        logger = logging.getLogger(__name__)
-        logger.debug(f"Incoming data: {request.data}")
+    @action(detail=False, methods=['get'])
+    def by_record(self, request):
+        record_id = request.query_params.get('record')
+        if record_id:
+            losses = self.queryset.filter(record__id=record_id)
+            serializer = self.get_serializer(losses, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'Record ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        data = request.data
-        record_id = data.get('record')
-        if not record_id:
-            return Response({'error': 'Record ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            losses = Loss.objects.filter(record_id=record_id)
-            if losses.exists():
-                loss = losses.first()
-                serializer = self.get_serializer(loss, data=data, partial=True)
-                serializer.is_valid(raise_exception=True)
-                self.perform_update(serializer)
-                logger.info(f"Updated Loss ID: {loss.id} for Record ID: {record_id}")
-                return Response(serializer.data)
-            serializer = self.get_serializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            logger.info(f"Created new Loss for Record ID: {record_id}")
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error while creating/updating loss: {str(e)}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class GoalViewSet(viewsets.ModelViewSet):
+    queryset = Goal.objects.all()
+    serializer_class = GoalSerializer
+
+class UEPListView(LoginRequiredMixin, View):
+    template_name = 'track/ueps.html'
+
+    def get(self, request, *args, **kwargs):
+        department_id = kwargs.get('department_id')
+        department = get_object_or_404(Department, id=department_id)
+        ueps = UEP.objects.filter(department=department)
+        return render(request, self.template_name, {'department': department, 'ueps': ueps})
+
+class DepartmentViewSet(viewsets.ModelViewSet):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+
+class UEPViewSet(viewsets.ModelViewSet):
+    queryset = UEP.objects.all()
+    serializer_class = UEPSerializer
 
 
 class GoalViewSet(viewsets.ModelViewSet):
@@ -369,11 +321,6 @@ def get_statistics(request, department_id, interval='day'):
         statistics[uep.name] += record.number_of_products
 
     return Response(statistics)
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Record
-from .serializers import RecordSerializer
-
 def create_record(request):
     serializer = RecordSerializer(data=request.data)
     if serializer.is_valid():

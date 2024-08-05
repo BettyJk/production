@@ -20,11 +20,10 @@ class UEPSerializer(serializers.ModelSerializer):
     class Meta:
         model = UEP
         fields = '__all__'
-from rest_framework import serializers
-from .models import Record, Loss
+
 
 from rest_framework import serializers
-from .models import Loss, Record
+from .models import Record, Loss
 
 class LossSerializer(serializers.ModelSerializer):
     class Meta:

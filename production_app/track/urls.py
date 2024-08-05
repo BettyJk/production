@@ -9,12 +9,12 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'users', CustomUserViewSet)
-router.register(r'departments', DepartmentViewSet)
-router.register(r'ueps', UEPViewSet)
-router.register(r'records', RecordViewSet)
-router.register(r'losses', LossViewSet)
-router.register(r'goals', GoalViewSet)
+router.register(r'users', CustomUserViewSet, basename='customuser')
+router.register(r'departments', DepartmentViewSet, basename='department')
+router.register(r'ueps', UEPViewSet, basename='uep')
+router.register(r'records', RecordViewSet, basename='record')
+router.register(r'losses', LossViewSet, basename='loss')
+router.register(r'goals', GoalViewSet, basename='goal')
 
 app_name = 'track'
 
@@ -31,4 +31,5 @@ urlpatterns = [
     path('delete-record/<int:record_id>/', DeleteRecordView.as_view(), name='delete_record'),
     path('api/records/<int:department_id>/<str:shift>/<str:hour>/', department_records, name='department_records'),
     path('records/shift-and-hour/', RecordViewSet.as_view({'get': 'by_shift_and_hour'}), name='records-by-shift-and-hour')
+
 ]
