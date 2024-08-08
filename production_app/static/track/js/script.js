@@ -11,49 +11,47 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedDate = null;
     let selectedShift = null;
 
-   async function fetchAndDisplayData(shift, date) {
-    if (!shift || !date) {
-        console.warn('Shift or date is not selected.');
-        return;
+    async function fetchAndDisplayData(shift, date) {
+        if (!shift || !date) {
+            console.warn('Shift or date is not selected.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/records/?shift=${shift}&date=${date}`);
+            if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
+            const data = await response.json();
+            populateTable(shift, date, data);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
     }
 
-    try {
-        console.log(`Fetching data for shift: ${shift}, date: ${date}`);
-        const response = await fetch(`/api/records/?shift=${shift}&date=${date}`);
-        if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
-        const data = await response.json();
-        console.log('Fetched data:', data);
-        populateTable(shift, date, data);
-    } catch (error) {
-        console.error('Error fetching data:', error);
-    }
-}
-
-function populateTable(shift, date, data) {
+    function populateTable(shift, date, data) {
     const tableBody = document.getElementById('table-body');
     if (!tableBody) {
         console.error('Table body not found!');
         return;
     }
 
-    console.log('Populating table with data:', data);
+    tableBody.innerHTML = '';  // Clear the table body
 
-    // Clear the table body
-    tableBody.innerHTML = '';
-
-    // Group records by hour for easy access
     const recordsByHour = {};
     data.forEach(record => {
-        const hour = record.hour.split('T')[1].slice(0, 5); // Extract the hour in HH:MM format
-        if (!recordsByHour[hour]) {
-            recordsByHour[hour] = [];
+        // Use the local time from the record directly
+        const localDate = new Date(record.hour);
+const localHour = localDate.toTimeString().slice(0, 5);  // Get the hour:minute part
+console.log(`Original hour: ${record.hour}, Local hour: ${localHour}`);
+
+
+        if (!recordsByHour[localHour]) {
+            recordsByHour[localHour] = [];
         }
-        recordsByHour[hour].push(record);
+        recordsByHour[localHour].push(record);
     });
 
-    console.log('Grouped records by hour:', recordsByHour);
-
     shiftHours[shift].forEach(hourRange => {
+        const [startHour, endHour] = hourRange.split('-');
         const row = document.createElement('tr');
         const hourCell = document.createElement('td');
         hourCell.textContent = hourRange;
@@ -67,7 +65,7 @@ function populateTable(shift, date, data) {
             const cellId = `${date}-${shift}-${uepId}-${hourRange.replace(':', '')}`;
             gridContainer.dataset.cellId = cellId;
 
-            const hourData = recordsByHour[hourRange] || [];
+            const hourData = recordsByHour[startHour] || [];
             const record = hourData.find(record => record.uep === parseInt(uepId, 10)) || {};
             const numberOfProducts = record.number_of_products || 0;
             const losses = record.losses || [];
@@ -82,9 +80,6 @@ function populateTable(shift, date, data) {
                 <div class="grid-item grid-item-production-loss">${productionLoss}</div>
             `;
 
-            const lossColor = (record && Object.keys(record).length > 0) ?
-                (totalLoss < 3 ? '#93c47d' : (totalLoss <= 10 ? '#f6b26b' : '#e06666')) : '#ffffff';
-            gridContainer.style.backgroundColor = lossColor;
 
             gridContainer.addEventListener('click', () => openModal(record, uepId, hourRange, cellId));
 
@@ -94,28 +89,35 @@ function populateTable(shift, date, data) {
 
         tableBody.appendChild(row);
     });
-
-    console.log('Table populated successfully.');
 }
+
+
+
     function openModal(record, uepId, hourRange, cellId) {
-        $('#dataModal').modal('show');
-        const recordJson = {
-            uep: uepId,
-            date: selectedDate,
-            hour: hourRange,
-            cellId: cellId
-        };
-        document.getElementById('jsonDisplay').textContent = JSON.stringify(recordJson, null, 2);
+    $('#dataModal').modal('show');
 
-        document.getElementById('uepHiddenInput').value = uepId;
-        document.getElementById('shiftHiddenInput').value = selectedShift;
-        document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
-        document.getElementById('recordIdHiddenInput').value = record.id || '';
-
-        document.querySelectorAll('.grid-container').forEach(container => {
-            container.querySelectorAll('.grid-item').forEach(item => item.style.pointerEvents = 'none');
-        });
+    // Populate the modal with the record data
+    document.getElementById('number_of_products').value = record.number_of_products || '';
+    const losses = record.losses || [];
+    if (losses.length > 0) {
+        document.getElementById('logistic_loss').value = losses[0].logistic_loss || '';
+        document.getElementById('production_loss').value = losses[0].production_loss || '';
+        document.getElementById('logistic_comment').value = losses[0].logistic_comment || '';
+        document.getElementById('production_comment').value = losses[0].production_comment || '';
+    } else {
+        document.getElementById('logistic_loss').value = '';
+        document.getElementById('production_loss').value = '';
+        document.getElementById('logistic_comment').value = '';
+        document.getElementById('production_comment').value = '';
     }
+
+    // Populate hidden fields with relevant data
+    document.getElementById('uepHiddenInput').value = uepId;
+    document.getElementById('shiftHiddenInput').value = selectedShift;
+    document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
+    document.getElementById('recordIdHiddenInput').value = record.id || '';
+}
+
 
     function getCookie(name) {
         const cookies = document.cookie.split(';');
@@ -139,13 +141,11 @@ function populateTable(shift, date, data) {
         const cellId = formData.get('cellId');
         const existingRecordId = formData.get('recordIdHiddenInput');
 
-        // Check if the record ID already exists
         if (existingRecordId) {
             alert('Record already exists. Edit the record if you want to make changes.');
             return;
         }
 
-        // Create or update record
         const recordData = {
             user,
             shift,
@@ -170,14 +170,7 @@ function populateTable(shift, date, data) {
             }
 
             const recordDataResponse = await response.json();
-            console.log('Record saved successfully:', recordDataResponse);
 
-            // Check if record ID is present
-            if (!recordDataResponse.id) {
-                throw new Error('Record ID is missing in the response.');
-            }
-
-            // Create or update loss
             const lossData = {
                 record: recordDataResponse.id,
                 logistic_loss,
@@ -197,7 +190,6 @@ function populateTable(shift, date, data) {
 
             if (!lossResponse.ok) {
                 const lossErrorData = await lossResponse.text();
-                console.error('Error response:', lossErrorData);
                 throw new Error(`Error creating/updating loss: ${lossErrorData}`);
             }
 
@@ -210,62 +202,47 @@ function populateTable(shift, date, data) {
         }
     }
 
-    const dataForm = document.getElementById('dataForm');
-    if (dataForm) {
-        dataForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            saveRecordAndLosses(formData)
-                .catch(error => {
-                    console.error('Error saving data:', error);
-                    alert(`Error saving data: ${error.message || 'Unknown error'}`);
-                });
-            $('#dataModal').modal('hide');
-        });
-    }
-
     function setupFlatpickr() {
         const flatpickrElement = document.getElementById('flatpickr');
         if (flatpickrElement) {
             flatpickr(flatpickrElement, {
                 onChange: function(selectedDates, dateStr) {
                     selectedDate = dateStr;
-                    if (selectedShift) fetchAndDisplayData(selectedShift, selectedDate);
-                }
+                    fetchAndDisplayData(selectedShift, selectedDate);
+                },
+                dateFormat: 'Y-m-d',
+                defaultDate: new Date()
             });
         }
     }
 
     function setupShiftButtons() {
-        const shiftButtons = document.querySelectorAll('.btn-group .btn');
+        const shiftButtons = document.querySelectorAll('.shift-button');
         shiftButtons.forEach(button => {
             button.addEventListener('click', function() {
                 selectedShift = this.dataset.shift;
+                shiftButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
                 fetchAndDisplayData(selectedShift, selectedDate);
             });
         });
     }
 
     function setupModal() {
-        const closeModalBtn = document.getElementById('closeModal');
-        const deleteRecordBtn = document.getElementById('deleteRecord');
-        const deleteConfirmBtn = document.getElementById('confirmDelete');
-
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', function() {
+        const closeModalButton = document.querySelector('#dataModal .close');
+        if (closeModalButton) {
+            closeModalButton.addEventListener('click', function() {
                 $('#dataModal').modal('hide');
             });
         }
 
-        if (deleteRecordBtn) {
-            deleteRecordBtn.addEventListener('click', function() {
+        const deleteRecordButton = document.querySelector('#deleteRecordButton');
+        if (deleteRecordButton) {
+            deleteRecordButton.addEventListener('click', function() {
                 const recordId = document.getElementById('recordIdHiddenInput').value;
                 if (recordId) {
                     deleteRecord(recordId);
-                } else {
-                    alert('No record ID found for deletion.');
                 }
-                $('#dataModal').modal('hide');
             });
         }
     }
@@ -279,20 +256,36 @@ function populateTable(shift, date, data) {
                 }
             });
 
-            if (!response.ok) throw new Error(`Error deleting record: ${response.status}`);
-            console.log(`Record with ID ${recordId} deleted successfully`);
-            fetchAndDisplayData(selectedShift, selectedDate);
+            if (response.ok) {
+                $('#dataModal').modal('hide');
+                fetchAndDisplayData(selectedShift, selectedDate);
+            } else {
+                console.error('Error deleting record:', response.statusText);
+                alert('Failed to delete record.');
+            }
         } catch (error) {
             console.error('Error deleting record:', error);
+            alert('Failed to delete record.');
         }
     }
 
-
+    function setupFormSubmission() {
+        const form = document.getElementById('dataForm');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(form);
+                saveRecordAndLosses(formData);
+                $('#dataModal').modal('hide');
+                fetchAndDisplayData(selectedShift, selectedDate);
+            });
+        }
+    }
 
     function setDefaultDateAndShift() {
-        const now = new Date();
-        const currentHour = now.getHours();
-        selectedDate = now.toISOString().split('T')[0];
+        const currentTime = new Date();
+        const currentHour = currentTime.getHours();
+        selectedDate = currentTime.toISOString().split('T')[0];
 
         if (currentHour >= 6 && currentHour < 14) {
             selectedShift = 'A';
@@ -302,14 +295,318 @@ function populateTable(shift, date, data) {
             selectedShift = 'N';
         }
 
-        const flatpickrElement = document.getElementById('flatpickr');
-        if (flatpickrElement) flatpickrElement.value = selectedDate;
+        const shiftButton = document.querySelector(`.shift-button[data-shift="${selectedShift}"]`);
+        if (shiftButton) {
+            shiftButton.classList.add('active');
+        } else {
+            console.error(`No shift button found for shift ${selectedShift}`);
+        }
 
         fetchAndDisplayData(selectedShift, selectedDate);
     }
-
-    setupFlatpickr();
+   setupFlatpickr();
     setupShiftButtons();
     setupModal();
+    setupFormSubmission();
     setDefaultDateAndShift();
 });
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM fully loaded and parsed');
+
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+    console.log('Dropdown items:', dropdownItems);
+
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function (event) {
+            console.log('Dropdown item clicked');
+            event.preventDefault();
+
+            const exportType = this.getAttribute('data-download');  // day, month, or year
+            const departmentId = document.body.getAttribute('data-department-id');
+
+            console.log(`Export Type: ${exportType}`);
+            console.log(`Department ID: ${departmentId}`);
+
+            if (exportType && departmentId) {
+                // Construct the API URL to include the period and department ID
+                const apiUrl = `/api/download_data/${exportType}/${departmentId}/`;
+                console.log(`Constructed API URL: ${apiUrl}`);
+
+                // Show loading indicator
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.textContent = 'Loading...';
+                loadingIndicator.style.position = 'fixed';
+                loadingIndicator.style.top = '50%';
+                loadingIndicator.style.left = '50%';
+                loadingIndicator.style.transform = 'translate(-50%, -50%)';
+                loadingIndicator.style.backgroundColor = '#fff';
+                loadingIndicator.style.padding = '10px';
+                loadingIndicator.style.borderRadius = '5px';
+                loadingIndicator.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+                document.body.appendChild(loadingIndicator);
+
+                fetch(apiUrl)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Data received:', data);
+
+                        // Check if records exist
+                        if (Array.isArray(data.records) && data.records.length > 0) {
+                            // Create a new workbook
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(data.records);
+                            XLSX.utils.book_append_sheet(wb, ws, "Records");
+
+                            // Generate a download link and click it
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            const blob = new Blob([s2ab(wbout)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                            const url = window.URL.createObjectURL(blob);
+                            console.log('Generated Blob URL:', url);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `records_${exportType}_${departmentId}.xlsx`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(url);
+                        } else {
+                            console.log('No records found or incorrect data format.');
+                            alert('No records found.');
+                        }
+
+                        // Hide loading indicator
+                        document.body.removeChild(loadingIndicator);
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error);
+                        alert('Failed to fetch data. Please try again later.');
+
+                        // Hide loading indicator
+                        document.body.removeChild(loadingIndicator);
+                    });
+            } else {
+                alert('Required data attributes are missing.');
+            }
+        });
+    });
+
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; ++i) {
+            view[i] = s.charCodeAt(i) & 0xFF;
+        }
+        return buf;
+    }
+});
+
+function displayChart(chartData, targetLine) {
+    const chart = echarts.init(document.getElementById('prodChart'));
+
+    const targetMapping = {};
+    chartData.forEach((data, index) => {
+        targetMapping[data.hour] = targetLine[index];
+    });
+
+    const option = {
+        xAxis: {
+            type: 'category',
+            data: chartData.map(data => data.hour),
+        },
+        yAxis: {
+            type: 'value',
+        },
+        series: [
+            {
+                type: 'bar',
+                data: chartData.map(data => data.value),
+                itemStyle: {
+                    color: function (params) {
+                        const hour = chartData[params.dataIndex].hour;
+                        const target = targetMapping[hour];
+                        if (params.value < target) return '#FF6242'; // Red for values below target
+                        if (params.value >= target) return '#83f28f'; // Light green for values above or equal to target
+                    }
+                }
+            },
+            {
+                name: 'TARGET',
+                type: 'line',
+                data: targetLine,
+                itemStyle: {
+                    color: '#58AFDD' // Line color for target
+                }
+            }
+        ]
+    };
+    chart.setOption(option);
+
+    console.log('Displaying chart...');
+}
+
+function displayPieCharts(production, theoTarget) {
+    const totalTheoTarget = theoTarget * 7 + 21;
+    const ropieValue = (production / totalTheoTarget) * 100;
+
+    console.log(production);
+
+    const ropieChart = echarts.init(document.getElementById('ROpie'));
+    const ropieOption = {
+        title: {
+            text: 'RO',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item'
+        },
+        series: [{
+            name: 'Production',
+            type: 'pie',
+            radius: '50%',
+            data: [
+                {
+                    value: production,
+                    name: 'Production',
+                    itemStyle: {
+                        color: '#83f28f'
+                    }
+                },
+                {
+                    value: totalTheoTarget - production,
+                    name: 'Restant',
+                    itemStyle: {
+                        color: '#FF8164'
+                    }
+                }
+            ],
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }]
+    };
+    ropieChart.setOption(ropieOption);
+}
+
+function displayTRpie(emptyHours, totalHours) {
+    const trPieChart = echarts.init(document.getElementById('TRpie'));
+    const option = {
+        title: {
+            text: 'TR',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+        },
+        series: [
+            {
+                name: 'Heures',
+                type: 'pie',
+                radius: '50%',
+                data: [
+                    {
+                        value: totalHours - emptyHours,
+                        name: 'Heures remplies',
+                        itemStyle: {
+                            color: '#83f28f'
+                        }
+                    },
+                    {
+                        value: emptyHours,
+                        name: 'Heures non remplies',
+                        itemStyle: {
+                            color: '#FFFF60'
+                        }
+                    }
+                ],
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }
+        ]
+    };
+    trPieChart.setOption(option);
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentIdElement = document.querySelector('body').getAttribute('data-department-id');
+    const shiftElement = document.querySelector('.shift-button.active');
+    const dateElement = document.getElementById('flatpickr');
+    let uepIdElement = document.getElementById('data-uep-id');
+
+    console.log('departmentId', departmentIdElement);
+    console.log('shiftElement', shiftElement);
+    console.log('dateElement', dateElement);
+    console.log('uepIdElement', uepIdElement);
+
+    document.querySelectorAll('.eye').forEach(function(eyeIcon) {
+        eyeIcon.addEventListener('click', function() {
+            const uepId = this.getAttribute('data-uep-id');
+            console.log('Selected UEP ID:', uepId);
+
+            if (!uepIdElement) {
+                uepIdElement = document.createElement('input');
+                uepIdElement.type = 'hidden';
+                uepIdElement.id = 'data-uep-id';
+                document.body.appendChild(uepIdElement);
+                console.log('Created uepIdElement:', uepIdElement);
+            }
+            uepIdElement.value = uepId;
+
+            fetchAndDisplayChartData();
+        });
+    });
+
+    function fetchAndDisplayChartData() {
+        const departmentId = departmentIdElement;
+        const shift = shiftElement ? shiftElement.getAttribute('data-shift') : null;
+        const date = dateElement ? dateElement.value : null;
+        const uepId = uepIdElement ? uepIdElement.value : null;
+
+        console.log('Fetching data with:', { departmentId, shift, date, uepId });
+
+        if (departmentId && shift && date && uepId) {
+            fetch(`/api/get-chart-data/${departmentId}/${shift}/${date}/${uepId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API Response:', data);
+
+                    const chartData = data.chartData;
+                    const targetLine = data.targetLine;
+                    const production = data.production;
+                    const theoTarget = data.theoTarget;
+                    const emptyHours = data.emptyHours;
+                    const totalHours = data.totalHours;
+
+                    displayChart(chartData, targetLine);
+                    displayPieCharts(production, theoTarget);
+                    displayTRpie(emptyHours, totalHours);
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
+        } else {
+            console.error('One or more elements are missing in the DOM');
+        }
+    }
+});
+
+
+
+
+
+
+
+

@@ -58,3 +58,68 @@ table.principale .table.inside:hover {
 .modal-footer .btn {
     min-width: 100px;
 }
+/* Additional styling for the "Show Graphs" button */
+#showGraphsButton {
+    background-color: #28a745; /* Bootstrap success color */
+    border: none;
+    color: white;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+#showGraphsButton:hover {
+    background-color: #218838;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#showGraphsButton:focus {
+    outline: none;
+}
+
+.dropdown-menu {
+    right: 0; /* Align dropdown to the right edge of the button */
+    left: auto; /* Prevent left alignment */
+    padding: 10px; /* Add padding to the dropdown menu */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.uep-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 10px;
+}
+
+.uep-grid-header {
+    display: contents;
+}
+
+.uep-grid-item {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.uep-header {
+    background-color: #f8f9fa;
+    position: relative;
+}
+
+.uep-header-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 5px;
+}
+
+.uep-grid-body {
+    display: contents;
+}
+
+/* Optional: Style for rows in the body */
+.uep-grid-body > .uep-grid-item {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+}

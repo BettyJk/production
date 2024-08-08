@@ -42,30 +42,47 @@
         .grid-item-loss { background-color: #d6a8d2; }
         .grid-item-logistic-loss { background-color: #f8d7da; }
         .grid-item-production-loss { background-color: #fff3cd; }
+        .dropdown-menu {
+    right: 0; /* Align dropdown to the right edge of the button */
+    left: auto; /* Prevent left alignment */
+    padding: 10px; /* Add padding to the dropdown menu */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
     </style>
 </head>
 <body class="saisie-page" data-department-id="{{ department.id }}">
     <div class="container-fluid">
-        <!-- First row: Logo, Department Name, and Download Button -->
-        <div class="row mt-5 py-4 align-items-center">
-            <div class="col-md-4 text-left">
-                <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Stellantis Logo" class="img-fluid">
-            </div>
-            <div class="col-md-4 text-center">
-                <h1>{{ department.name }}</h1>
-            </div>
-            <div class="col-md-4 text-right">
-                <button class="btn btn-primary">Télécharger</button>
+         <!-- First row: Logo, Department Name, and Download Button -->
+<div class="row mt-5 py-4 align-items-center">
+    <div class="col-md-4 text-left">
+        <img src="{% static 'track/images/idc9zBJ9et_1720812951756.svg' %}" alt="Stellantis Logo" class="img-fluid">
+    </div>
+    <div class="col-md-4 text-center">
+        <h1>{{ department.name }}</h1>
+    </div>
+    <div class="col-md-4 text-right">
+        <div class="btn-group">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="downloadDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Télécharger
+            </button>
+            <div class="dropdown-menu" aria-labelledby="downloadDropdown">
+                <a class="dropdown-item" href="#" data-download="day">Day</a>
+                <a class="dropdown-item" href="#" data-download="month">Month</a>
+                <a class="dropdown-item" href="#" data-download="year">Year</a>
             </div>
         </div>
+        <button class="btn btn-success ml-2" id="showGraphsButton">Show Graphs</button>
+    </div>
+</div>
 
         <!-- Second row: Flatpickr Date Picker and Additional Buttons -->
         <div class="row mt-3 mt-adjusted align-items-center">
             <div class="col-lg-4 text-center">
                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                    <button id="button1" class="btn btn-info" data-shift="A">SHIFT A</button>
-                    <button id="button2" class="btn btn-info" data-shift="B">SHIFT B</button>
-                    <button id="button3" class="btn btn-info" data-shift="N">SHIFT N</button>
+                    <button class="shift-button" data-shift="A">Shift A</button>
+                    <button class="shift-button" data-shift="B">Shift B</button>
+                    <button class="shift-button" data-shift="N">Shift N</button>
                 </div>
             </div>
             <div class="col-lg-4 text-center">
@@ -80,17 +97,25 @@
                 <table class="table principale" id="uep-table">
                     <thead>
                         <tr id="table-header">
-                            <th>Heure</th>
-                            {% for uep in ueps %}
-                                <th class="text-center" data-uep-id="{{ uep.id }}">
-                                    {{ uep.name }}
-                                    <img src="{% static 'track/images/eye-outline.svg' %}" class="header-icon" alt="View">
-                                </th>
-                            {% endfor %}
-                        </tr>
+    <th>Heure</th>
+    {% for uep in ueps %}
+    <th class="text-center" data-uep-id="{{ uep.id }}">
+        {{ uep.name }}
+        <img src="{% static 'track/images/eye-outline.svg' %}"
+             data-toggle="modal"
+             data-target="#uepModal"
+             data-uep="{{ uep.name }}"
+             data-uep-id="{{ uep.id }}"
+             alt="Info"
+             class="eye">
+    </th>
+{% endfor %}
+
+</tr>
+
                     </thead>
                     <tbody id="table-body">
-                        <!-- Table body will be populated here -->
+
                     </tbody>
                 </table>
             </div>
@@ -146,6 +171,38 @@
             </div>
         </div>
     </div>
+<!-- Modal for UEP Information -->
+        <div class="modal fade" id="uepModal" tabindex="-1" aria-labelledby="uepModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uepModalLabel">UEP Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>UEP Name</th>
+                            <th>Theoretical Goal</th>
+                            <th>Planned Goal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uep-info-body">
+                        <!-- UEP info will be inserted here dynamically -->
+                    </tbody>
+                </table>
+                <!-- Chart containers -->
+                <div id="prodChart" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+                <div id="ROpie" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+                <div id="TRpie" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- jQuery -->
     <script src="{% static 'track/js/js/jquery-3.7.1.js' %}"></script>
@@ -153,7 +210,11 @@
     <script src="{% static 'track/js/js/bootstrap.min.js' %}" crossorigin="anonymous"></script>
     <!-- Flatpickr -->
     <script src="{% static 'track/js/js/flatpickr.min.js' %}"></script>
-    <!-- Custom script -->
+    <script src="{% static 'track/js/js/echarts.min.js' %}"></script>
+    <script src="{% static 'track/js/js/xlsx.full.min.js' %}"></script>
+
+
+
     <script src="{% static 'track/js/script.js' %}"></script>
 </body>
 </html>

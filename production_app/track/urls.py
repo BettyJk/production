@@ -2,10 +2,11 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
 
+from . import views
 from .views import (
     CustomLoginView, WelcomeView, RegisterView, InputView, DepartmentViewSet,
     UEPViewSet, RecordViewSet, LossViewSet, CustomUserViewSet, GoalViewSet,
-    DepartementListCreateView, DeleteRecordView, DashboardView, department_records,
+    DepartementListCreateView, DeleteRecordView, DashboardView, department_records, download_data_api, get_chart_data,
 )
 
 router = DefaultRouter()
@@ -30,6 +31,9 @@ urlpatterns = [
     path('dashboard/', DashboardView, name='dashboard'),
     path('delete-record/<int:record_id>/', DeleteRecordView.as_view(), name='delete_record'),
     path('api/records/<int:department_id>/<str:shift>/<str:hour>/', department_records, name='department_records'),
-    path('records/shift-and-hour/', RecordViewSet.as_view({'get': 'by_shift_and_hour'}), name='records-by-shift-and-hour')
+    path('records/shift-and-hour/', RecordViewSet.as_view({'get': 'by_shift_and_hour'}), name='records-by-shift-and-hour'),
+    path('api/download_data/<str:period>/<int:department_id>/', download_data_api, name='download_data_api'),
+    path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/', get_chart_data, name='get_chart_data'),
+    path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/<int:uep_id>/', views.get_chart_data, name='get_chart_data'),
 
 ]

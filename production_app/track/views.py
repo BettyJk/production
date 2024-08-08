@@ -1,27 +1,24 @@
-import json
-from datetime import datetime
 from django.contrib import messages
+from django.contrib.auth import get_user_model, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
+from django.db.models import Sum
 from django.http import JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from rest_framework import viewsets, status
-from django.contrib.auth import get_user_model, authenticate, login
 from rest_framework.decorators import api_view, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.utils import timezone
 from rest_framework.views import APIView
 
-from . import serializers
 from .models import Department, UEP, Record, Loss, CustomUser, Goal
-from .serializers import DepartmentSerializer, UEPSerializer, RecordSerializer, LossSerializer, CustomUserSerializer, GoalSerializer
+from .serializers import DepartmentSerializer, UEPSerializer, RecordSerializer, LossSerializer, CustomUserSerializer, \
+    GoalSerializer
 
 User = get_user_model()
 
@@ -327,3 +324,210 @@ def create_record(request):
         record = serializer.save()
         return Response({'id': record.id, **serializer.data}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+import openpyxl
+from django.http import HttpResponse
+from django.utils import timezone
+from datetime import datetime, timedelta
+from .models import Record
+
+
+def download_data(request, period):
+    now = timezone.now()
+    start_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
+
+    if period == 'day':
+        start_time = start_time
+    elif period == 'month':
+        start_time = start_time.replace(day=1)
+    elif period == 'year':
+        start_time = start_time.replace(month=1, day=1)
+    else:
+        return HttpResponse("Invalid period", status=400)
+
+    records = Record.objects.filter(hour__gte=start_time, hour__lte=now)
+
+    # Create an in-memory Excel file
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Records"
+
+    # Write headers
+    headers = ['User', 'Number of Products', 'UEP', 'Shift', 'Hour', 'Logistic Loss', 'Production Loss']
+    ws.append(headers)
+
+    # Write data rows
+    for record in records:
+        row = [
+            record.user.username,
+            record.number_of_products,
+            record.uep.name,
+            record.shift,
+            record.hour,
+            record.loss_set.aggregate(logistic_loss_sum=Sum('logistic_loss'))['logistic_loss_sum'],
+            record.loss_set.aggregate(production_loss_sum=Sum('production_loss'))['production_loss_sum']
+        ]
+        ws.append(row)
+
+    # Create a response object
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="records_{period}.xlsx"'
+
+    # Save the workbook to the response
+    wb.save(response)
+
+    return response
+## views.py
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+from .models import Record, Loss
+
+@require_GET
+def get_cell_data(request):
+    uep_id = request.GET.get('uep')
+    date = request.GET.get('date')
+    hour = request.GET.get('hour')
+
+    try:
+        record = Record.objects.get(uep=uep_id, date=date, hour=hour)
+        try:
+            loss = Loss.objects.get(record=record)
+            data = {
+                'number_of_products': record.number_of_products,
+                'logistic_loss': loss.logistic_loss,
+                'production_loss': loss.production_loss,
+                'logistic_comment': loss.logistic_comment,
+                'production_comment': loss.production_comment,
+            }
+        except Loss.DoesNotExist:
+            data = {
+                'number_of_products': record.number_of_products,
+                'logistic_loss': '',
+                'production_loss': '',
+                'logistic_comment': '',
+                'production_comment': '',
+            }
+    except Record.DoesNotExist:
+        data = {
+            'number_of_products': '',
+            'logistic_loss': '',
+            'production_loss': '',
+            'logistic_comment': '',
+            'production_comment': '',
+        }
+
+    return JsonResponse(data)
+
+
+def download_data_api(request, period, department_id):
+    now = timezone.now()
+
+    # Determine start time based on period
+    if period == 'day':
+        start_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
+    elif period == 'month':
+        start_time = now.replace(day=1, hour=6, minute=0, second=0, microsecond=0)
+    elif period == 'year':
+        start_time = now.replace(month=1, day=1, hour=6, minute=0, second=0, microsecond=0)
+    else:
+        return JsonResponse({"error": "Invalid period"}, status=400)
+
+    end_time = now
+
+    # Check if department exists
+    department = get_object_or_404(Department, id=department_id)
+
+    # Retrieve and aggregate records
+    records = Record.objects.filter(
+        uep__department=department,
+        hour__gte=start_time,
+        hour__lte=end_time
+    ).select_related('user', 'uep')  # Optimize by fetching related data
+
+    record_list = []
+    for record in records:
+        # Use the correct related name 'losses'
+        logistic_loss_sum = record.losses.aggregate(Sum('logistic_loss'))['logistic_loss__sum']
+        production_loss_sum = record.losses.aggregate(Sum('production_loss'))['production_loss__sum']
+
+        record_list.append({
+            "user": record.user.username,
+            "number_of_products": record.number_of_products,
+            "uep": record.uep.name,
+            "shift": record.shift,
+            "hour": record.hour.strftime('%Y-%m-%d %H:%M:%S'),
+            "logistic_loss": logistic_loss_sum if logistic_loss_sum else 0,
+            "production_loss": production_loss_sum if production_loss_sum else 0
+        })
+
+    return JsonResponse({"records": record_list})
+from django.db.models import Sum
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Department, UEP, Record, Goal
+from rest_framework.decorators import api_view
+
+
+@api_view(['GET'])
+def get_chart_data(request, department_id, shift, date, uep_id):
+    try:
+        # Retrieve the department
+        department = Department.objects.get(id=department_id)
+
+        # Retrieve the specific UEP
+        uep = UEP.objects.get(id=uep_id, department=department)
+
+        # Print debug information
+        print(f"Department: {department}")
+        print(f"UEP: {uep}")
+
+        # Retrieve records for the specific UEP, shift, and date
+        records = Record.objects.filter(
+            uep=uep,
+            shift=shift,
+            hour__date=date
+        )
+
+        # Print debug information
+        print(f"Records: {list(records)}")
+
+        # Generate chart data and target line
+        chart_data = []
+        target_line = []
+        for record in records:
+            chart_data.append({
+                'hour': record.hour.strftime('%H:%M'),  # Formatting for easier display
+                'value': record.number_of_products
+            })
+            target_line.append(uep.target.theoretical_goal)  # Assuming UEP has a 'target' related to Goal
+
+        # Calculate the total number of products for the specific UEP
+        production = records.aggregate(total=Sum('number_of_products'))['total'] or 0
+
+        # Print debug information
+        print(f"Production calculated: {production}")
+
+        # Retrieve the theoretical target for this UEP (assuming each UEP has a related Goal)
+        theo_target = uep.target.theoretical_goal
+
+        # Calculate empty hours (example logic)
+        empty_hours = 24 - records.count()  # Assuming you have 24 hours in a shift and each hour should have a record
+
+        total_hours = 24  # You can adjust this if your shifts cover fewer hours
+
+        return Response({
+            'chartData': chart_data,
+            'targetLine': target_line,
+            'production': production,
+            'theoTarget': theo_target,
+            'emptyHours': empty_hours,
+            'totalHours': total_hours
+        })
+
+    except Department.DoesNotExist:
+        return Response({"error": "Département non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+    except UEP.DoesNotExist:
+        return Response({"error": "UEP non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+    except Goal.DoesNotExist:
+        return Response({"error": "Objectif non trouvé"}, status=status.HTTP_404_NOT_FOUND)
