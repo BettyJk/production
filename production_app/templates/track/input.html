@@ -20,28 +20,31 @@
             background-color: #fff;
             height: 100px;
         }
-        .grid-item {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            text-align: center;
-            font-size: 12px;
-            background-color: #f9f9f9;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: background-color 0.3s, box-shadow 0.3s;
-        }
-        .grid-item:hover {
-            background-color: #e2e2e2;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .grid-item-number { background-color: #cce5ff; }
-        .grid-item-loss { background-color: #d6a8d2; }
-        .grid-item-logistic-loss { background-color: #f8d7da; }
-        .grid-item-production-loss { background-color: #fff3cd; }
+        @import url('https://fonts.googleapis.com/css2?family=Quattro+Sans:wght@400;700&display=swap');
+
+.grid-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px; /* Increased font size */
+    background-color: #f9f9f9;
+    color: #666; /* Grey text color */
+    font-family: 'Quattro Sans', sans-serif; /* Set the font to Quattro Sans */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.grid-item:hover {
+    background-color: #e2e2e2;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
         .dropdown-menu {
     right: 0; /* Align dropdown to the right edge of the button */
     left: auto; /* Prevent left alignment */

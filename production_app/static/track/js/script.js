@@ -612,11 +612,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
-
-
-
-
-
-
-

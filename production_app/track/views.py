@@ -462,11 +462,14 @@ def download_data_api(request, period, department_id):
         })
 
     return JsonResponse({"records": record_list})
+
+
 from django.db.models import Sum
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Department, UEP, Record, Goal
 from rest_framework.decorators import api_view
+from rest_framework import status
+from .models import Department, UEP, Record
+
 
 
 @api_view(['GET'])
