@@ -207,19 +207,38 @@ class InputView(LoginRequiredMixin, View):
 
         return redirect(reverse('track:input', kwargs={'department_id': department_id}))
 
+
+from django.utils.dateparse import parse_date
+from django.utils.timezone import make_aware
+from datetime import datetime, timedelta
+
+
 class RecordViewSet(viewsets.ModelViewSet):
     queryset = Record.objects.all()
     serializer_class = RecordSerializer
 
     @action(detail=False, methods=['get'])
-    def by_shift_and_hour(self, request):
+    def by_shift_and_date(self, request):
         shift = request.query_params.get('shift')
-        hour = request.query_params.get('hour')
-        if shift and hour:
-            records = self.queryset.filter(shift=shift, hour=hour)
+        date_str = request.query_params.get('date')  # Expecting 'YYYY-MM-DD'
+
+        if shift and date_str:
+            # Parse the date string into a datetime object
+            date = parse_date(date_str)
+            if not date:
+                return Response({'error': 'Invalid date format'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create the date range for the day
+            start_of_day = make_aware(datetime.combine(date, datetime.min.time()))
+            end_of_day = start_of_day + timedelta(days=1)
+
+            # Filter records by shift and date range (i.e., the entire day)
+            records = self.queryset.filter(shift=shift, hour__range=(start_of_day, end_of_day))
             serializer = self.get_serializer(records, many=True)
             return Response(serializer.data)
-        return Response({'error': 'Shift and hour are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'error': 'Shift and date are required'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LossViewSet(viewsets.ModelViewSet):
     queryset = Loss.objects.all()
@@ -463,14 +482,11 @@ def download_data_api(request, period, department_id):
 
     return JsonResponse({"records": record_list})
 
-
 from django.db.models import Sum
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
 from .models import Department, UEP, Record
-
-
 
 @api_view(['GET'])
 def get_chart_data(request, department_id, shift, date, uep_id):
@@ -485,10 +501,9 @@ def get_chart_data(request, department_id, shift, date, uep_id):
         print(f"Department: {department}")
         print(f"UEP: {uep}")
 
-        # Retrieve records for the specific UEP, shift, and date
+        # Retrieve records for the specific UEP and date (regardless of shift)
         records = Record.objects.filter(
             uep=uep,
-            shift=shift,
             hour__date=date
         )
 
@@ -515,9 +530,9 @@ def get_chart_data(request, department_id, shift, date, uep_id):
         theo_target = uep.target.theoretical_goal
 
         # Calculate empty hours (example logic)
-        empty_hours = 24 - records.count()  # Assuming you have 24 hours in a shift and each hour should have a record
+        empty_hours = 24 - records.count()  # Assuming you have 24 hours in a day and each hour should have a record
 
-        total_hours = 24  # You can adjust this if your shifts cover fewer hours
+        total_hours = 24  # Assuming a full day is 24 hours
 
         return Response({
             'chartData': chart_data,

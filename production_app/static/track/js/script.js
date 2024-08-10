@@ -6,36 +6,40 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const tableHeader = document.querySelector('#table-header');
-    const uepIds = Array.from(tableHeader.querySelectorAll('th[data-uep-id]')).map(th => th.dataset.uepId);
+const uepIds = Array.from(tableHeader.querySelectorAll('th[data-uep-id]')).map(th => th.dataset.uepId);
 let selectedDate = null;
 let selectedShift = null;
 
-// Setup Flatpickr and set default date
 function setupFlatpickr() {
     const flatpickrElement = document.getElementById('flatpickr');
     if (flatpickrElement) {
         flatpickr(flatpickrElement, {
             onChange: function(selectedDates, dateStr) {
+                console.log(`Flatpickr date changed to: ${dateStr}`);
                 selectedDate = dateStr;
                 fetchAndDisplayData(selectedShift, selectedDate);
             },
             dateFormat: 'Y-m-d',
-            defaultDate: new Date(), // Set the default date to the current date
+            defaultDate: new Date(),
         });
     }
 }
-
-// Function to handle shift button click and set selected shift
 function setupShiftButtons() {
     const shiftButtons = document.querySelectorAll('.shift-button');
     shiftButtons.forEach(button => {
         button.addEventListener('click', () => {
+            // Remove 'active' class from all buttons
+            shiftButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Add 'active' class to the clicked button
+            button.classList.add('active');
+
             selectedShift = button.dataset.shift;
+            console.log(`Shift selected: ${selectedShift}`);
             fetchAndDisplayData(selectedShift, selectedDate);
         });
     });
 }
-
 async function fetchAndDisplayData(shift, date) {
     if (!shift || !date) {
         console.warn('Shift or date is not selected.');
@@ -43,9 +47,10 @@ async function fetchAndDisplayData(shift, date) {
     }
 
     try {
-        const response = await fetch(`/api/records/?shift=${shift}&date=${date}`);
+        const response = await fetch(`/api/records/by_shift_and_date/?shift=${shift}&date=${date}`);
         if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
         const data = await response.json();
+        console.log('API Response:', data);
         populateTable(shift, date, data);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -59,17 +64,18 @@ function populateTable(shift, date, data) {
         return;
     }
 
-    tableBody.innerHTML = '';  // Clear the table body
+    tableBody.innerHTML = '';
 
     const recordsByHour = {};
     data.forEach(record => {
-        const localHour = record.hour.split('T')[1].slice(0, 5);  // Extract hour:minute from record.hour
-        console.log(`Original hour: ${record.hour}, Local hour: ${localHour}`);
+        // Extract hour directly from the UTC timestamp without converting to local time
+        const utcHour = record.hour.slice(11, 16); // Extract hour:minute from 'YYYY-MM-DDTHH:MM:SSZ'
+        console.log(`Original hour (UTC): ${record.hour}, Treated as Local hour: ${utcHour}`);
 
-        if (!recordsByHour[localHour]) {
-            recordsByHour[localHour] = [];
+        if (!recordsByHour[utcHour]) {
+            recordsByHour[utcHour] = [];
         }
-        recordsByHour[localHour].push(record);
+        recordsByHour[utcHour].push(record);
     });
 
     shiftHours[shift].forEach(hourRange => {
@@ -89,11 +95,26 @@ function populateTable(shift, date, data) {
 
             const hourData = recordsByHour[startHour] || [];
             const record = hourData.find(record => record.uep === parseInt(uepId, 10)) || {};
-            const numberOfProducts = record.number_of_products || 0;
-            const losses = record.losses || [];
-            const logisticLoss = losses.length > 0 ? losses[0].logistic_loss : 0;
-            const productionLoss = losses.length > 0 ? losses[0].production_loss : 0;
-            const totalLoss = 33 - numberOfProducts;
+            let numberOfProducts = record.number_of_products || 0;
+            let logisticLoss = 0;
+            let productionLoss = 0;
+            let totalLoss = 0;
+
+            if (numberOfProducts !== 0) {
+                const losses = record.losses || [];
+                logisticLoss = losses.length > 0 ? losses[0].logistic_loss : 0;
+                productionLoss = losses.length > 0 ? losses[0].production_loss : 0;
+                totalLoss = 33 - numberOfProducts; // Example calculation
+
+                const RO = (numberOfProducts / 33) * 100;
+                if (RO < 92) {
+                    gridContainer.style.backgroundColor = '#e35656'; // Red
+                } else if (RO >= 92 && RO < 99) {
+                    gridContainer.style.backgroundColor = '#f6b26b'; // Orange
+                } else {
+                    gridContainer.style.backgroundColor = '#b6d7a8'; // Green
+                }
+            }
 
             gridContainer.innerHTML = `
                 <div class="grid-item grid-item-number">${numberOfProducts}</div>
@@ -136,16 +157,16 @@ function openModal(record, uepId, hourRange, cellId) {
     document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
     document.getElementById('recordIdHiddenInput').value = record.id || '';
 }
-
 function getCookie(name) {
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {
-        const [cookieName, cookieValue] = cookie.trim().split('=');
-        if (cookieName === name) return decodeURIComponent(cookieValue);
+        const [cookieName, cookieValue] = cookie.split('=');
+        if (cookieName.trim() === name) {
+            return decodeURIComponent(cookieValue);
+        }
     }
     return null;
 }
-
 async function saveRecordAndLosses(formData) {
     const uep = formData.get('uep');
     const shift = formData.get('shift');
@@ -156,7 +177,6 @@ async function saveRecordAndLosses(formData) {
     const logistic_comment = formData.get('logistic_comment');
     const production_comment = formData.get('production_comment');
     const user = formData.get('user');
-    const cellId = formData.get('cellId');
     const existingRecordId = formData.get('recordIdHiddenInput');
 
     if (existingRecordId) {
@@ -214,29 +234,17 @@ async function saveRecordAndLosses(formData) {
         const lossDataResponse = await lossResponse.json();
         console.log('Loss saved successfully:', lossDataResponse);
 
+        // Fetch and display the updated data after saving
+        fetchAndDisplayData(shift, selectedDate);
+
+        // Close the modal
+        $('#dataModal').modal('hide');
+
     } catch (error) {
         console.error('Error saving data:', error);
         alert(`Error saving data: ${error.message || 'Unknown error'}`);
     }
 }
-
-// Initialize setup
-document.addEventListener('DOMContentLoaded', () => {
-    setupFlatpickr();
-    setupShiftButtons();
-});
-
-    function setupShiftButtons() {
-        const shiftButtons = document.querySelectorAll('.shift-button');
-        shiftButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                selectedShift = this.dataset.shift;
-                shiftButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-                fetchAndDisplayData(selectedShift, selectedDate);
-            });
-        });
-    }
 
     function setupModal() {
         const closeModalButton = document.querySelector('#dataModal .close');
@@ -256,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-
     async function deleteRecord(recordId) {
         try {
             const response = await fetch(`/api/records/${recordId}/`, {
@@ -278,19 +285,17 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Failed to delete record.');
         }
     }
-
     function setupFormSubmission() {
-        const form = document.getElementById('dataForm');
-        if (form) {
-            form.addEventListener('submit', function(event) {
-                event.preventDefault();
-                const formData = new FormData(form);
-                saveRecordAndLosses(formData);
-                $('#dataModal').modal('hide');
-                fetchAndDisplayData(selectedShift, selectedDate);
-            });
-        }
+    const form = document.getElementById('dataForm');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(form);
+            saveRecordAndLosses(formData);
+            // The fetchAndDisplayData call is now inside saveRecordAndLosses
+        });
     }
+}
 
     function setDefaultDateAndShift() {
         const currentTime = new Date();
@@ -554,14 +559,23 @@ function displayTRpie(emptyHours, totalHours) {
 
 document.addEventListener('DOMContentLoaded', function() {
     const departmentIdElement = document.querySelector('body').getAttribute('data-department-id');
-    const shiftElement = document.querySelector('.shift-button.active');
     const dateElement = document.getElementById('flatpickr');
     let uepIdElement = document.getElementById('data-uep-id');
+    let shiftElement = document.querySelector('.shift-button.active'); // Initial active shift
 
     console.log('departmentId', departmentIdElement);
-    console.log('shiftElement', shiftElement);
     console.log('dateElement', dateElement);
     console.log('uepIdElement', uepIdElement);
+
+    // Ensure shift buttons update the active shift
+    document.querySelectorAll('.shift-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            document.querySelector('.shift-button.active').classList.remove('active');
+            this.classList.add('active');
+            shiftElement = this;
+            fetchAndDisplayChartData();
+        });
+    });
 
     document.querySelectorAll('.eye').forEach(function(eyeIcon) {
         eyeIcon.addEventListener('click', function() {
@@ -582,6 +596,35 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function fetchAndDisplayChartData() {
+    const departmentId = departmentIdElement;
+    const date = dateElement ? dateElement.value : null;
+    const uepId = uepIdElement ? uepIdElement.value : null;
+
+    console.log('Fetching data with:', { departmentId, date, uepId });
+
+    if (departmentId && date && uepId) {
+        fetch(`/api/get-chart-data/${departmentId}/${date}/${uepId}/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+
+                const chartData = data.chartData;
+                const targetLine = data.targetLine;
+                const production = data.production;
+                const theoTarget = data.theoTarget;
+                const emptyHours = data.emptyHours;
+                const totalHours = data.totalHours;
+
+                displayChart(chartData, targetLine);
+                displayPieCharts(production, theoTarget);
+                displayTRpie(emptyHours, totalHours);
+            })
+            .catch(error => console.error('Error fetching chart data:', error));
+    } else {
+        console.error('One or more elements are missing in the DOM');
+    }
+}
+function fetchAndDisplayChartData() {
         const departmentId = departmentIdElement;
         const shift = shiftElement ? shiftElement.getAttribute('data-shift') : null;
         const date = dateElement ? dateElement.value : null;
