@@ -75,7 +75,10 @@
                 <a class="dropdown-item" href="#" data-download="year">Year</a>
             </div>
         </div>
-        <button class="btn btn-success ml-2" id="showGraphsButton">Show Graphs</button>
+        <button class="btn btn-success ml-2" id="showGraphsButton"  data-toggle="modal"
+             data-target="#departmentModal">Show Graphs</button>
+
+
     </div>
 </div>
 
@@ -186,9 +189,8 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>UEP Name</th>
-                            <th>Theoretical Goal</th>
-                            <th>Planned Goal</th>
+                            <th>{{ uep.name }}</th>
+
                         </tr>
                     </thead>
                     <tbody id="uep-info-body">
@@ -206,18 +208,49 @@
         </div>
     </div>
 </div>
+        <div class="modal fade" id="departmentModal" tabindex="-1" aria-labelledby="departmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="departmentModalLabel">department Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>{{ department.name }}</th>
 
-    <!-- jQuery -->
+                        </tr>
+                    </thead>
+                    <tbody id="department-info-body">
+                        <!-- UEP info will be inserted here dynamically -->
+                    </tbody>
+                </table>
+                <!-- Chart containers -->
+                <div id="proddepartmentChart" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+                <div id="ROpiedepartment" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+                <div id="TRpiedepartment" style="width: 600px; height: 400px; margin-top: 20px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
     <script src="{% static 'track/js/js/jquery-3.7.1.js' %}"></script>
     <!-- Bootstrap JS -->
     <script src="{% static 'track/js/js/bootstrap.min.js' %}" crossorigin="anonymous"></script>
     <!-- Flatpickr -->
-    <script src="{% static 'track/js/js/flatpickr.min.js' %}"></script>
+    <script src="
+https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
+"></script>
+<link href="
+https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css
+" rel="stylesheet">
+
     <script src="{% static 'track/js/js/echarts.min.js' %}"></script>
     <script src="{% static 'track/js/js/xlsx.full.min.js' %}"></script>
-
-
-
     <script src="{% static 'track/js/script.js' %}"></script>
 </body>
 </html>

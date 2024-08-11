@@ -655,3 +655,206 @@ function fetchAndDisplayChartData() {
         }
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentIdElement = document.querySelector('body').getAttribute('data-department-id');
+    const dateElement = document.getElementById('flatpickr');
+
+    const departmentId = parseInt(departmentIdElement, 10);
+
+    console.log('departmentId', departmentId);
+    console.log('dateElement', dateElement);
+
+    function fetchAndDisplayDepartmentChartData() {
+        const date = dateElement.value;
+
+        fetch(`/api/get-department-chart-data/${departmentId}/${date}/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+
+                const chartData = data.chartData;
+                const targetLine = data.targetLine;
+                const production = data.production;
+                const theoTarget = data.theoTarget;
+                const emptyHours = data.emptyHours;
+                const totalHours = data.totalHours;
+
+                displayDepartmentChart(chartData, targetLine);
+                displayDepartmentPieCharts(production, theoTarget);
+                displayDepartmentTRpie(emptyHours, totalHours);
+            })
+            .catch(error => console.error('Error fetching department chart data:', error));
+    }
+
+    document.querySelectorAll('.shift-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            document.querySelector('.shift-button.active').classList.remove('active');
+            this.classList.add('active');
+            fetchAndDisplayDepartmentChartData();
+        });
+    });
+
+    document.getElementById('showGraphsButton').addEventListener('click', function() {
+        fetchAndDisplayDepartmentChartData();
+    });
+
+    function displayDepartmentChart(chartData, targetLine) {
+        const chart = echarts.init(document.getElementById('proddepartmentChart'));
+
+        const targetMapping = {};
+        chartData.forEach((data, index) => {
+            targetMapping[data.hour] = targetLine[index];
+        });
+
+        const option = {
+            title: {
+                text: 'Department Production Over Time',
+                left: 'center'
+            },
+            xAxis: {
+                type: 'category',
+                data: chartData.map(data => `${data.hour}-${addHour(data.hour)}`), // Format time ranges
+                axisLabel: {
+                    formatter: function(value) {
+                        return value;
+                    }
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Number of Products',
+            },
+            series: [
+                {
+                    name: 'Production',
+                    type: 'bar',
+                    data: chartData.map(data => data.value),
+                    itemStyle: {
+                        color: function (params) {
+                            const hour = chartData[params.dataIndex].hour;
+                            const target = targetMapping[hour];
+                            return params.value < target ? '#FF6242' : '#83f28f'; // Color logic
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: '{c}'
+                    }
+                },
+                {
+                    name: 'Target',
+                    type: 'line',
+                    data: targetLine,
+                    itemStyle: {
+                        color: '#58AFDD'
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: '{c}'
+                    }
+                }
+            ]
+        };
+        chart.setOption(option);
+    }
+
+    function displayDepartmentPieCharts(production, theoTarget) {
+        const totalTheoTarget = theoTarget * 7 + 21;
+        const ropieValue = (production / totalTheoTarget) * 100;
+
+        const ropieChart = echarts.init(document.getElementById('ROpiedepartment'));
+        const ropieOption = {
+            title: {
+                text: 'RO (Ratio of Production to Goal)',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [{
+                name: 'Production',
+                type: 'pie',
+                radius: '50%',
+                data: [
+                    {
+                        value: production,
+                        name: 'Production',
+                        itemStyle: {
+                            color: '#83f28f'
+                        }
+                    },
+                    {
+                        value: totalTheoTarget - production,
+                        name: 'Remaining Target',
+                        itemStyle: {
+                            color: '#FF8164'
+                        }
+                    }
+                ],
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }]
+        };
+        ropieChart.setOption(ropieOption);
+    }
+
+    function displayDepartmentTRpie(emptyHours, totalHours) {
+        const trPieChart = echarts.init(document.getElementById('TRpiedepartment'));
+        const option = {
+            title: {
+                text: 'TR (Filled vs Empty Hours)',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [
+                {
+                    name: 'Hours',
+                    type: 'pie',
+                    radius: '50%',
+                    data: [
+                        {
+                            value: totalHours - emptyHours,
+                            name: 'Filled Hours',
+                            itemStyle: {
+                                color: '#83f28f'
+                            }
+                        },
+                        {
+                            value: emptyHours,
+                            name: 'Empty Hours',
+                            itemStyle: {
+                                color: '#FFFF60'
+                            }
+                        }
+                    ],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        trPieChart.setOption(option);
+    }
+
+    function addHour(time) {
+        const [hour, minute] = time.split(':').map(Number);
+        const newHour = (hour + 1) % 24;
+        return `${newHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+});
+

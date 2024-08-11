@@ -35,5 +35,5 @@ urlpatterns = [
     path('api/download_data/<str:period>/<int:department_id>/', download_data_api, name='download_data_api'),
     path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/', get_chart_data, name='get_chart_data'),
     path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/<int:uep_id>/', views.get_chart_data, name='get_chart_data'),
-
+path('api/get-department-chart-data/<int:department_id>/<str:date>/', views.get_department_chart_data, name='get_department_chart_data'),
 ]

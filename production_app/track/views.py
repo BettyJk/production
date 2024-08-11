@@ -549,3 +549,70 @@ def get_chart_data(request, department_id, shift, date, uep_id):
         return Response({"error": "UEP non trouvé"}, status=status.HTTP_404_NOT_FOUND)
     except Goal.DoesNotExist:
         return Response({"error": "Objectif non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+from django.db.models import Sum
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import Department, UEP, Record
+
+@api_view(['GET'])
+def get_department_chart_data(request, department_id, date):
+    try:
+        # Retrieve the department
+        department = Department.objects.get(id=department_id)
+
+        # Retrieve all UEPs under this department
+        ueps = UEP.objects.filter(department=department)
+
+        # Print debug information
+        print(f"Department: {department}")
+        print(f"UEPs: {ueps}")
+
+        # Initialize variables to store aggregated data
+        chart_data = []
+        target_line = []
+        total_production = 0
+        total_theo_target = 0
+        total_empty_hours = 24  # Assuming 24 hours in a day
+        total_hours = 24
+
+        for uep in ueps:
+            # Retrieve records for the specific UEP and date (across all shifts)
+            records = Record.objects.filter(uep=uep, hour__date=date)
+
+            # Print debug information
+            print(f"Records for UEP {uep.id}: {list(records)}")
+
+            # Aggregate the data for each hour
+            for record in records:
+                hour = record.hour.strftime('%H:%M')
+                value = record.number_of_products
+
+                # Append data to chart_data
+                chart_data.append({
+                    'hour': hour,
+                    'value': value
+                })
+
+                # Update the total production
+                total_production += value
+
+            # Add target value for each hour (assuming each UEP has a related Goal)
+            target_line.extend([uep.target.theoretical_goal] * records.count())
+
+            # Update the total theoretical target
+            total_theo_target += uep.target.theoretical_goal * records.count()
+
+            # Subtract the number of records from total_empty_hours
+            total_empty_hours -= records.count()
+
+        return Response({
+            'chartData': chart_data,
+            'targetLine': target_line,
+            'production': total_production,
+            'theoTarget': total_theo_target,
+            'emptyHours': total_empty_hours,
+            'totalHours': total_hours
+        })
+
+    except Department.DoesNotExist:
+        return Response({"error": "Département non trouvé"}, status=status.HTTP_404_NOT_FOUND)
