@@ -1,35 +1,50 @@
-{% extends 'track/base.html' %}
-{% load static %}
-{% block title %}Bienvenue{% endblock %}
-{% block body_class %}body-center{% endblock %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenue</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'track/css/welcome.css' %}">
+</head>
+<body class="body-center">
+    <main>
+        <div class="content">
+            <div class="div">
+                <div class="div-2">
 
-{% block content %}
-<div class="div">
-  <div class="div-2">
-    <img class="shape-svg" src="{% static 'track/images/shape.svg' %}" alt="Shape" />
-    <div class="div-3">
-      <div class="column">
-        <div class="div-4">
-          <div class="div-5">Bienvenue, {{ user.username }} !</div>
-          <br>
-          <br>
-          <div class="message1">Vous vous êtes connecté avec succès.</div>
-          <div class="div-6">
-            <div class="div-7">
-              <img loading="lazy" src="{% static 'track/images/Home.svg' %}" class="img" />
-              <div class="div-8"><a class="button-link" href="{% url 'track:dashboard' %}">Accueil</a></div>
+                    <div class="div-3">
+                        <div class="column">
+                            <div class="div-4">
+                                <div class="div-5">Bienvenue, {{ user.username }} !</div>
+                                <br>
+                                <br>
+                                <div class="message1">Vous vous êtes connecté avec succès.</div>
+                                <div class="div-6">
+                                    <div class="div-7">
+                                        <img loading="lazy" src="{% static 'track/images/Home.svg' %}" class="img" />
+                                        <div class="div-8">
+                                            <a class="button-link" href="{% url 'track:dashboard' %}">Accueil</a>
+                                        </div>
+                                    </div>
+                                    <div class="div-9">
+                                        <div class="div-10">
+                                            <img loading="lazy" src="{% static 'track/images/Log out.svg' %}" class="img-2" />
+                                            <div class="div-11">
+                                                <a class="button-link" href="{% url 'logout' %}">Déconnexion</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column-2">
+                            <div class="div-12"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="div-9">
-              <div class="div-10">
-                <img loading="lazy" src="{% static 'track/images/Log out.svg' %}" class="img-2" />
-                <div class="div-11"><a class="button-link" href="{% url 'logout' %}">Déconnexion</a></div>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
-      <div class="column-2"><div class="div-12"></div></div>
-    </div>
-  </div>
-</div>
-{% endblock %}
+    </main>
+</body>
+</html>
