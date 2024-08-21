@@ -1,15 +1,53 @@
-{% extends 'track/base.html' %}
+<!DOCTYPE html>
 {% load static %}
+<html lang="fr">
 
-{% block title %}Tableau de bord{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tableau de bord{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'track/css/dashboard.css' %}">
+</head>
 
-{% block content %}
-<aside class="sidebar">
-    <h1>Départements</h1>
-    <ul>
-                {% for departement in departements %}
-                    <li><a href="{% url 'track:input' department_id=departement.pk %}">{{ departement.name }}</a></li>
-                {% endfor %}
-            </ul>
-</aside>
-{% endblock %}
+<body class="body-right">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <aside class="col-md-3 col-lg-2 sidebar">
+                <h1 class="h4">Départements</h1>
+                <ul class="nav flex-column">
+                    {% for departement in departements %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'track:input' department_id=departement.pk %}">{{ departement.name }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="col-md-9 col-lg-10 main-content">
+                <!-- Charts Container -->
+                <div id="charts-container">
+                    <div id="chart1" class="chart"></div>
+                    <div id="chart2" class="chart"></div>
+                    <div id="chart3" class="chart"></div>
+                    <div id="chart4" class="chart"></div>
+                    <div id="chart5" class="chart"></div>
+                    <div id="chart6" class="chart"></div>
+                    <div id="chart7" class="chart"></div>
+                    <div id="chart8" class="chart"></div>
+                    <div id="chart9" class="chart"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Include necessary JavaScript files -->
+    <script src="{% static 'track/js/js/jquery-3.7.1.min.js' %}" defer></script>
+    <script src="{% static 'track/js/js/bootstrap.min.js' %}" defer crossorigin="anonymous"></script>
+    <script src="{% static 'track/js/js/flatpickr.min.js' %}" defer></script>
+    <script src="{% static 'track/js/js/echarts.min.js' %}" defer></script>
+    <script src="{% static 'track/js/dashboard.js' %}"></script>
+
+</body>
+</html>

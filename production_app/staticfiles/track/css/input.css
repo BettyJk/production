@@ -1,52 +1,125 @@
-/* styles.css */
-
-body {
-    font-family: Arial, sans-serif;
+/* Remove borders for the main table */
+table.principale, table.principale th, table.principale td {
+    border: none !important;
 }
-
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #f1f1f1;
+table.principale td.heure{
+    width: 100px;
 }
-
-header img {
-    height: 50px;
-}
-
-header h1 {
-    text-align: center;
-    flex-grow: 1;
-}
-
-header button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
+.eye {
+    width: 16px;
+    height: 16px;
     cursor: pointer;
 }
 
-header button:hover {
-    background-color: #45a049;
+.eye:hover {
+    opacity: 0.7;
+}
+/* Style for inside table */
+table.principale .table.inside {
+    margin-bottom: 0%;
+    cursor: pointer;
+    border-radius: 8px; /* Apply rounded corners to the entire table */
+    overflow: hidden; /* Ensure rounded corners are visible */
+    border: 1px solid #ccc; /* Gray border around the table */
+    box-shadow: 0 0px 8px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Ensure the inside table takes full width */
 }
 
-#hours-container, #table-container {
-    margin: 20px 0;
+/* Style for cells within the inside table */
+table.principale .table.inside td {
+    width: 50%;
+    border: 1px solid #bcb7b7 !important; /* Gray border for cells */
+    text-align: center; /* Center text in cells */
 }
 
-table {
+table.principale .table.inside:hover {
+    box-shadow: 8px 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.container-fluid{
+    background-color: #28377C;
+    color: #fff;
+}
+.header-icon {
+    width: 16px; /* Adjust size as needed */
+    height: 16px; /* Adjust size as needed */
+    vertical-align: middle;
+    margin-left: 8px; /* Space between text and icon */
+    cursor: pointer;
+}
+.modal-body .form-group {
+    margin-bottom: 1rem;
+}
+
+.modal-body .form-control {
     width: 100%;
-    border-collapse: collapse;
 }
 
-table, th, td {
-    border: 1px solid black;
+.modal-footer .btn {
+    min-width: 100px;
+}
+/* Additional styling for the "Show Graphs" button */
+#showGraphsButton {
+    background-color: #28a745; /* Bootstrap success color */
+    border: none;
+    color: white;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
 }
 
-th, td {
-    padding: 8px;
+#showGraphsButton:hover {
+    background-color: #218838;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#showGraphsButton:focus {
+    outline: none;
+}
+
+.dropdown-menu {
+    right: 0; /* Align dropdown to the right edge of the button */
+    left: auto; /* Prevent left alignment */
+    padding: 10px; /* Add padding to the dropdown menu */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.uep-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 10px;
+}
+
+.uep-grid-header {
+    display: contents;
+}
+
+.uep-grid-item {
+    padding: 10px;
+    border: 1px solid #ddd;
     text-align: center;
+}
+
+.uep-header {
+    background-color: #f8f9fa;
+    position: relative;
+}
+
+.uep-header-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 5px;
+}
+
+.uep-grid-body {
+    display: contents;
+}
+
+/* Optional: Style for rows in the body */
+.uep-grid-body > .uep-grid-item {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
 }

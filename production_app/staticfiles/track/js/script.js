@@ -1,244 +1,860 @@
 document.addEventListener('DOMContentLoaded', function() {
-    initializeFlatpickr();
-    const departmentId = "{{ department.id }}"; // Assuming this is passed from your Django template
-    fetchUEPs(departmentId);
+    const shiftHours = {
+        A: ['06:00-07:00', '07:00-08:00', '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00'],
+        B: ['14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00', '21:00-22:00'],
+        N: ['22:00-23:00', '23:00-00:00', '00:00-01:00', '01:00-02:00', '02:00-03:00', '03:00-04:00', '04:00-05:00', '05:00-06:00']
+    };
 
-    setupEventListeners();
-});
+    const tableHeader = document.querySelector('#table-header');
+const uepIds = Array.from(tableHeader.querySelectorAll('th[data-uep-id]')).map(th => th.dataset.uepId);
+let selectedDate = null;
+let selectedShift = null;
 
-function initializeFlatpickr() {
-    flatpickr("#flatpickr", {
-        dateFormat: "Y-m-d",
-        defaultDate: new Date()
-    });
-}
-
-function setupEventListeners() {
-    document.getElementById('button1').addEventListener('click', () => selectShift('shiftA'));
-    document.getElementById('button2').addEventListener('click', () => selectShift('shiftB'));
-    document.getElementById('button3').addEventListener('click', () => selectShift('shiftN'));
-
-    document.getElementById('zoneForm').addEventListener('submit', handleSubmit);
-
-    document.querySelectorAll('.zone').forEach(zoneElement => {
-        zoneElement.addEventListener('click', handleZoneClick);
-    });
-
-    document.getElementById('recordInput').addEventListener('input', updateLossInput);
-    document.getElementById('logisticLossInput').addEventListener('input', updateLossInput);
-    document.getElementById('productionLossInput').addEventListener('input', updateLossInput);
-}
-
-function handleSubmit(event) {
-    event.preventDefault();
-
-    const record = document.getElementById('recordInput').value;
-    const logisticLoss = document.getElementById('logisticLossInput').value;
-    const logisticComment = document.getElementById('logisticCommentInput').value;
-    const productionLoss = document.getElementById('productionLossInput').value;
-    const productionComment = document.getElementById('productionCommentInput').value;
-    const zone = document.getElementById('zoneHiddenInput').value;
-    const uep = document.getElementById('uepHiddenInput').value;
-    const shift = document.getElementById('shiftHiddenInput').value; // Adjusted field
-    const hour = document.getElementById('hourHiddenInput').value; // Adjusted field
-
-    const data = {
-    number_of_products: record, // Ensure these fields match your serializer
-    logistic_loss: logisticLoss,
-    logistic_comment: logisticComment,
-    production_loss: productionLoss,
-    production_comment: productionComment,
-    zone: zone,
-    uep: uep,
-    shift: shift,
-    hour: hour
-};
-
-
-    console.log('Sending data:', data);
-
-    fetch('/api/records/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw err; });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Success:', data);
-        const modal = document.getElementById('exampleModal');
-        const modalInstance = bootstrap.Modal.getInstance(modal);
-        modalInstance.hide();
-        updateTimetableCell(data);
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-}
-
-function handleZoneClick() {
-    const zoneElement = this;
-    const zone = zoneElement.getAttribute('data-zone');
-    const uep = zoneElement.getAttribute('data-uep');
-
-    document.getElementById('zoneHiddenInput').value = zone;
-    document.getElementById('uepHiddenInput').value = uep;
-
-    // Pre-fill form fields if already existing data
-    const currentValue = zoneElement.getAttribute('data-value');
-    if (currentValue) {
-        document.getElementById('recordInput').value = currentValue; // Example, replace with appropriate logic for other fields
-        document.getElementById('logisticLossInput').value = ''; // Clear other fields if necessary
-        document.getElementById('logisticCommentInput').value = '';
-        document.getElementById('productionLossInput').value = '';
-        document.getElementById('productionCommentInput').value = '';
+function setupFlatpickr() {
+    const flatpickrElement = document.getElementById('flatpickr');
+    if (flatpickrElement) {
+        flatpickr(flatpickrElement, {
+            onChange: function(selectedDates, dateStr) {
+                console.log(`Flatpickr date changed to: ${dateStr}`);
+                selectedDate = dateStr;
+                fetchAndDisplayData(selectedShift, selectedDate);
+            },
+            dateFormat: 'Y-m-d',
+            defaultDate: new Date(),
+        });
     }
 }
+function setupShiftButtons() {
+    const shiftButtons = document.querySelectorAll('.shift-button');
+    shiftButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove 'active' class from all buttons
+            shiftButtons.forEach(btn => btn.classList.remove('active'));
 
-function selectShift(shift) {
-    console.log(`Selected shift: ${shift}`);
-    showShiftTimetable(`${shift}-timetable`);
-    // Additional logic for selecting shift can go here
-}
+            // Add 'active' class to the clicked button
+            button.classList.add('active');
 
-function fetchUEPs(departmentId) {
-    fetch(`/api/ueps/?department=${departmentId}`)
-        .then(response => response.json())
-        .then(data => {
-            window.ueps = data;
-            populateShiftTimetables();
-        })
-        .catch(error => {
-            console.error('Error fetching UEPs:', error);
+            selectedShift = button.dataset.shift;
+            console.log(`Shift selected: ${selectedShift}`);
+            fetchAndDisplayData(selectedShift, selectedDate);
         });
+    });
 }
-
-function populateShiftTimetables() {
-    const shifts = ['shiftA', 'shiftB', 'shiftN'];
-    shifts.forEach(shift => populateShiftTimetable(shift));
-}
-
-function populateShiftTimetable(shift) {
-    const tbody = document.getElementById(`${shift}-timetable`);
-    if (!tbody) {
-        console.error(`Table body for shift ${shift} not found.`);
+async function fetchAndDisplayData(shift, date) {
+    if (!shift || !date) {
+        console.warn('Shift or date is not selected.');
         return;
     }
 
-    const hours = shiftHours[shift];
-    const template = document.getElementById('row-template').content;
-    tbody.innerHTML = '';
-    hours.forEach(hour => {
-        const row = document.importNode(template, true);
-        row.querySelector('.hour').textContent = hour;
-        tbody.appendChild(row);
+    try {
+        const response = await fetch(`/api/records/by_shift_and_date/?shift=${shift}&date=${date}`);
+        if (!response.ok) throw new Error(`Error fetching data: ${response.status}`);
+        const data = await response.json();
+        console.log('API Response:', data);
+        populateTable(shift, date, data);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
+}
+
+function populateTable(shift, date, data) {
+    const tableBody = document.getElementById('table-body');
+    if (!tableBody) {
+        console.error('Table body not found!');
+        return;
+    }
+
+    tableBody.innerHTML = '';
+
+    const recordsByHour = {};
+    data.forEach(record => {
+        // Extract hour directly from the UTC timestamp without converting to local time
+        const utcHour = record.hour.slice(11, 16); // Extract hour:minute from 'YYYY-MM-DDTHH:MM:SSZ'
+        console.log(`Original hour (UTC): ${record.hour}, Treated as Local hour: ${utcHour}`);
+
+        if (!recordsByHour[utcHour]) {
+            recordsByHour[utcHour] = [];
+        }
+        recordsByHour[utcHour].push(record);
     });
 
-    fetch(`/api/records/?shift=${shift}`)
-        .then(response => response.json())
-        .then(records => {
-            records.forEach(record => updateTimetableCell(record));
-        })
-        .catch(error => {
-            console.error('Error fetching records:', error);
-        });
-}
+    shiftHours[shift].forEach(hourRange => {
+        const [startHour, endHour] = hourRange.split('-');
+        const row = document.createElement('tr');
+        const hourCell = document.createElement('td');
+        hourCell.textContent = hourRange;
+        row.appendChild(hourCell);
 
-function updateTimetableCell(record) {
-    try {
-        const shift = typeof record.shift === 'string' ? record.shift.toLowerCase() : '';
-        const tbody = document.getElementById(`${shift}-timetable`);
-        if (!tbody) {
-            console.error(`Table body for shift ${shift} not found.`);
-            return;
-        }
+        uepIds.forEach((uepId) => {
+            const cell = document.createElement('td');
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
 
-        const recordHour = extractHourFromTimestamp(record.timestamp);
-        const hourRow = Array.from(tbody.rows).find(row => row.querySelector('.hour').textContent === recordHour);
-        if (!hourRow) {
-            console.error(`Hour row for ${recordHour} not found in shift ${shift}.`);
-            return;
-        }
+            const cellId = `${date}-${shift}-${uepId}-${hourRange.replace(':', '')}`;
+            gridContainer.dataset.cellId = cellId;
 
-        const cell = hourRow.querySelector(`td[data-uep="${record.uep.id}"]`);
-        if (!cell) {
-            console.error(`Cell for UEP ${record.uep.id} not found in hour ${recordHour}.`);
-            return;
-        }
+            const hourData = recordsByHour[startHour] || [];
+            const record = hourData.find(record => record.uep === parseInt(uepId, 10)) || {};
+            let numberOfProducts = record.number_of_products || 0;
+            let logisticLoss = 0;
+            let productionLoss = 0;
+            let totalLoss = 0;
 
-        const zoneElement = cell.querySelector(`.zone[data-zone="${record.zone}"]`);
-        if (zoneElement) {
-            zoneElement.innerHTML = `
-                <div>Record: ${record.record}</div>
-                <div>Calculated Loss: ${record.calculated_loss}</div>
-                <div>Logistic Loss: ${record.logistic_loss}</div>
-                <div>Production Loss: ${record.production_loss}</div>
-            `;
-            updateCellStyling(zoneElement, record.calculated_loss);
-        } else {
-            console.error(`Zone element for zone ${record.zone} not found in cell.`);
-        }
-    } catch (error) {
-        console.error('Error updating timetable cell:', error);
-    }
-}
+            if (numberOfProducts !== 0) {
+                const losses = record.losses || [];
+                logisticLoss = losses.length > 0 ? losses[0].logistic_loss : 0;
+                productionLoss = losses.length > 0 ? losses[0].production_loss : 0;
+                totalLoss = 33 - numberOfProducts; // Example calculation
 
-const shiftHours = {
-    shiftA: ['06:00-07:00', '07:00-08:00', '08:00-09:00', '09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00'],
-    shiftB: ['14:00-15:00', '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00', '21:00-22:00'],
-    shiftN: ['22:00-23:00', '23:00-00:00', '00:00-01:00', '01:00-02:00', '02:00-03:00', '03:00-04:00', '04:00-05:00', '05:00-06:00']
-};
-
-function showShiftTimetable(shiftId) {
-    document.querySelectorAll('.shift-timetable').forEach(el => el.style.display = 'none');
-    const selectedShift = document.getElementById(shiftId);
-    if (selectedShift) {
-        selectedShift.style.display = 'table-row-group';
-    } else {
-        console.error(`Shift timetable for ${shiftId} not found.`);
-    }
-}
-
-function updateLossInput() {
-    const record = document.getElementById('recordInput').value;
-    const theoreticalGoal = 33;
-    const loss = theoreticalGoal - record;
-    document.getElementById('lossInput').value = loss;
-}
-
-function extractHourFromTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    const hour = date.getHours().toString().padStart(2, '0');
-    const minute = date.getMinutes().toString().padStart(2, '0');
-    return `${hour}:${minute}`;
-}
-
-function updateCellStyling(element, loss) {
-    if (loss > 0) {
-        element.style.backgroundColor = '#FFAAAA';
-    } else {
-        element.style.backgroundColor = '';
-    }
-}
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const trimmedCookie = cookie.trim();
-            if (trimmedCookie.startsWith(`${name}=`)) {
-                cookieValue = decodeURIComponent(trimmedCookie.substring(name.length + 1));
-                break;
+                const RO = (numberOfProducts / 33) * 100;
+                if (RO < 92) {
+                    gridContainer.style.backgroundColor = '#e35656'; // Red
+                } else if (RO >= 92 && RO < 99) {
+                    gridContainer.style.backgroundColor = '#f6b26b'; // Orange
+                } else {
+                    gridContainer.style.backgroundColor = '#b6d7a8'; // Green
+                }
             }
+
+            gridContainer.innerHTML = `
+                <div class="grid-item grid-item-number">${numberOfProducts}</div>
+                <div class="grid-item grid-item-loss">${totalLoss}</div>
+                <div class="grid-item grid-item-logistic-loss">${logisticLoss}</div>
+                <div class="grid-item grid-item-production-loss">${productionLoss}</div>
+            `;
+
+            gridContainer.addEventListener('click', () => openModal(record, uepId, hourRange, cellId));
+
+            cell.appendChild(gridContainer);
+            row.appendChild(cell);
+        });
+
+        tableBody.appendChild(row);
+    });
+}
+
+function openModal(record, uepId, hourRange, cellId) {
+    $('#dataModal').modal('show');
+
+    // Populate the modal with the record data
+    document.getElementById('number_of_products').value = record.number_of_products || '';
+    const losses = record.losses || [];
+    if (losses.length > 0) {
+        document.getElementById('logistic_loss').value = losses[0].logistic_loss || '';
+        document.getElementById('production_loss').value = losses[0].production_loss || '';
+        document.getElementById('logistic_comment').value = losses[0].logistic_comment || '';
+        document.getElementById('production_comment').value = losses[0].production_comment || '';
+    } else {
+        document.getElementById('logistic_loss').value = '';
+        document.getElementById('production_loss').value = '';
+        document.getElementById('logistic_comment').value = '';
+        document.getElementById('production_comment').value = '';
+    }
+
+    // Populate hidden fields with relevant data
+    document.getElementById('uepHiddenInput').value = uepId;
+    document.getElementById('shiftHiddenInput').value = selectedShift;
+    document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
+    document.getElementById('recordIdHiddenInput').value = record.id || '';
+}
+function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const [cookieName, cookieValue] = cookie.split('=');
+        if (cookieName.trim() === name) {
+            return decodeURIComponent(cookieValue);
         }
     }
-    return cookieValue;
+    return null;
 }
+async function saveRecordAndLosses(formData) {
+    const uep = formData.get('uep');
+    const shift = formData.get('shift');
+    const hour = formData.get('hour');
+    const number_of_products = parseInt(formData.get('number_of_products'), 10) || 0;
+    const logistic_loss = parseFloat(formData.get('logistic_loss')) || 0;
+    const production_loss = parseFloat(formData.get('production_loss')) || 0;
+    const logistic_comment = formData.get('logistic_comment');
+    const production_comment = formData.get('production_comment');
+    const user = formData.get('user');
+    const existingRecordId = formData.get('recordIdHiddenInput');
+
+    if (existingRecordId) {
+        alert('Record already exists. Edit the record if you want to make changes.');
+        return;
+    }
+
+    const recordData = {
+        user,
+        shift,
+        hour,
+        uep: parseInt(uep, 10),
+        number_of_products
+    };
+
+    try {
+        const response = await fetch('/api/records/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(recordData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Error creating/updating record: ${errorData.detail || 'Unknown error'}`);
+        }
+
+        const recordDataResponse = await response.json();
+
+        const lossData = {
+            record: recordDataResponse.id,
+            logistic_loss,
+            production_loss,
+            logistic_comment,
+            production_comment
+        };
+
+        const lossResponse = await fetch('/api/losses/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(lossData)
+        });
+
+        if (!lossResponse.ok) {
+            const lossErrorData = await lossResponse.text();
+            throw new Error(`Error creating/updating loss: ${lossErrorData}`);
+        }
+
+        const lossDataResponse = await lossResponse.json();
+        console.log('Loss saved successfully:', lossDataResponse);
+
+        // Fetch and display the updated data after saving
+        fetchAndDisplayData(shift, selectedDate);
+
+        // Close the modal
+        $('#dataModal').modal('hide');
+
+    } catch (error) {
+        console.error('Error saving data:', error);
+        alert(`Error saving data: ${error.message || 'Unknown error'}`);
+    }
+}
+
+    function setupModal() {
+        const closeModalButton = document.querySelector('#dataModal .close');
+        if (closeModalButton) {
+            closeModalButton.addEventListener('click', function() {
+                $('#dataModal').modal('hide');
+            });
+        }
+
+        const deleteRecordButton = document.querySelector('#deleteRecordButton');
+        if (deleteRecordButton) {
+            deleteRecordButton.addEventListener('click', function() {
+                const recordId = document.getElementById('recordIdHiddenInput').value;
+                if (recordId) {
+                    deleteRecord(recordId);
+                }
+            });
+        }
+    }
+    async function deleteRecord(recordId) {
+        try {
+            const response = await fetch(`/api/records/${recordId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            if (response.ok) {
+                $('#dataModal').modal('hide');
+                fetchAndDisplayData(selectedShift, selectedDate);
+            } else {
+                console.error('Error deleting record:', response.statusText);
+                alert('Failed to delete record.');
+            }
+        } catch (error) {
+            console.error('Error deleting record:', error);
+            alert('Failed to delete record.');
+        }
+    }
+    function setupFormSubmission() {
+    const form = document.getElementById('dataForm');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(form);
+            saveRecordAndLosses(formData);
+            // The fetchAndDisplayData call is now inside saveRecordAndLosses
+        });
+    }
+}
+
+    function setDefaultDateAndShift() {
+        const currentTime = new Date();
+        const currentHour = currentTime.getHours();
+        selectedDate = currentTime.toISOString().split('T')[0];
+
+        if (currentHour >= 6 && currentHour < 14) {
+            selectedShift = 'A';
+        } else if (currentHour >= 14 && currentHour < 22) {
+            selectedShift = 'B';
+        } else {
+            selectedShift = 'N';
+        }
+
+        const shiftButton = document.querySelector(`.shift-button[data-shift="${selectedShift}"]`);
+        if (shiftButton) {
+            shiftButton.classList.add('active');
+        } else {
+            console.error(`No shift button found for shift ${selectedShift}`);
+        }
+
+        fetchAndDisplayData(selectedShift, selectedDate);
+    }
+   setupFlatpickr();
+    setupShiftButtons();
+    setupModal();
+    setupFormSubmission();
+    setDefaultDateAndShift();
+});
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM fully loaded and parsed');
+
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+    console.log('Dropdown items:', dropdownItems);
+
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function (event) {
+            console.log('Dropdown item clicked');
+            event.preventDefault();
+
+            const exportType = this.getAttribute('data-download');  // day, month, or year
+            const departmentId = document.body.getAttribute('data-department-id');
+
+            console.log(`Export Type: ${exportType}`);
+            console.log(`Department ID: ${departmentId}`);
+
+            if (exportType && departmentId) {
+                // Construct the API URL to include the period and department ID
+                const apiUrl = `/api/download_data/${exportType}/${departmentId}/`;
+                console.log(`Constructed API URL: ${apiUrl}`);
+
+                // Show loading indicator
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.textContent = 'Loading...';
+                loadingIndicator.style.position = 'fixed';
+                loadingIndicator.style.top = '50%';
+                loadingIndicator.style.left = '50%';
+                loadingIndicator.style.transform = 'translate(-50%, -50%)';
+                loadingIndicator.style.backgroundColor = '#fff';
+                loadingIndicator.style.padding = '10px';
+                loadingIndicator.style.borderRadius = '5px';
+                loadingIndicator.style.boxShadow = '0 0 10px rgba(0,0,0,0.1)';
+                document.body.appendChild(loadingIndicator);
+
+                fetch(apiUrl)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Data received:', data);
+
+                        // Check if records exist
+                        if (Array.isArray(data.records) && data.records.length > 0) {
+                            // Create a new workbook
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(data.records);
+                            XLSX.utils.book_append_sheet(wb, ws, "Records");
+
+                            // Generate a download link and click it
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            const blob = new Blob([s2ab(wbout)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                            const url = window.URL.createObjectURL(blob);
+                            console.log('Generated Blob URL:', url);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `records_${exportType}_${departmentId}.xlsx`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(url);
+                        } else {
+                            console.log('No records found or incorrect data format.');
+                            alert('No records found.');
+                        }
+
+                        // Hide loading indicator
+                        document.body.removeChild(loadingIndicator);
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error);
+                        alert('Failed to fetch data. Please try again later.');
+
+                        // Hide loading indicator
+                        document.body.removeChild(loadingIndicator);
+                    });
+            } else {
+                alert('Required data attributes are missing.');
+            }
+        });
+    });
+
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; ++i) {
+            view[i] = s.charCodeAt(i) & 0xFF;
+        }
+        return buf;
+    }
+});
+
+function displayChart(chartData, targetLine) {
+    const chart = echarts.init(document.getElementById('prodChart'));
+
+    const targetMapping = {};
+    chartData.forEach((data, index) => {
+        targetMapping[data.hour] = targetLine[index];
+    });
+
+    const option = {
+        xAxis: {
+            type: 'category',
+            data: chartData.map(data => data.hour),
+        },
+        yAxis: {
+            type: 'value',
+        },
+        series: [
+            {
+                type: 'bar',
+                data: chartData.map(data => data.value),
+                itemStyle: {
+                    color: function (params) {
+                        const hour = chartData[params.dataIndex].hour;
+                        const target = targetMapping[hour];
+                        if (params.value < target) return '#FF6242'; // Red for values below target
+                        if (params.value >= target) return '#83f28f'; // Light green for values above or equal to target
+                    }
+                }
+            },
+            {
+                name: 'TARGET',
+                type: 'line',
+                data: targetLine,
+                itemStyle: {
+                    color: '#58AFDD' // Line color for target
+                }
+            }
+        ]
+    };
+    chart.setOption(option);
+
+    console.log('Displaying chart...');
+}
+
+function displayPieCharts(production, theoTarget) {
+    const totalTheoTarget = theoTarget * 7 + 21;
+    const ropieValue = (production / totalTheoTarget) * 100;
+
+    console.log(production);
+
+    const ropieChart = echarts.init(document.getElementById('ROpie'));
+    const ropieOption = {
+        title: {
+            text: 'RO',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item'
+        },
+        series: [{
+            name: 'Production',
+            type: 'pie',
+            radius: '50%',
+            data: [
+                {
+                    value: production,
+                    name: 'Production',
+                    itemStyle: {
+                        color: '#83f28f'
+                    }
+                },
+                {
+                    value: totalTheoTarget - production,
+                    name: 'Restant',
+                    itemStyle: {
+                        color: '#FF8164'
+                    }
+                }
+            ],
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }]
+    };
+    ropieChart.setOption(ropieOption);
+}
+
+function displayTRpie(emptyHours, totalHours) {
+    const trPieChart = echarts.init(document.getElementById('TRpie'));
+    const option = {
+        title: {
+            text: 'TR',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+        },
+        series: [
+            {
+                name: 'Heures',
+                type: 'pie',
+                radius: '50%',
+                data: [
+                    {
+                        value: totalHours - emptyHours,
+                        name: 'Heures remplies',
+                        itemStyle: {
+                            color: '#83f28f'
+                        }
+                    },
+                    {
+                        value: emptyHours,
+                        name: 'Heures non remplies',
+                        itemStyle: {
+                            color: '#FFFF60'
+                        }
+                    }
+                ],
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }
+        ]
+    };
+    trPieChart.setOption(option);
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentIdElement = document.querySelector('body').getAttribute('data-department-id');
+    const dateElement = document.getElementById('flatpickr');
+    let uepIdElement = document.getElementById('data-uep-id');
+    let shiftElement = document.querySelector('.shift-button.active'); // Initial active shift
+
+    console.log('departmentId', departmentIdElement);
+    console.log('dateElement', dateElement);
+    console.log('uepIdElement', uepIdElement);
+
+    // Ensure shift buttons update the active shift
+    document.querySelectorAll('.shift-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            document.querySelector('.shift-button.active').classList.remove('active');
+            this.classList.add('active');
+            shiftElement = this;
+            fetchAndDisplayChartData();
+        });
+    });
+
+    document.querySelectorAll('.eye').forEach(function(eyeIcon) {
+        eyeIcon.addEventListener('click', function() {
+            const uepId = this.getAttribute('data-uep-id');
+            console.log('Selected UEP ID:', uepId);
+
+            if (!uepIdElement) {
+                uepIdElement = document.createElement('input');
+                uepIdElement.type = 'hidden';
+                uepIdElement.id = 'data-uep-id';
+                document.body.appendChild(uepIdElement);
+                console.log('Created uepIdElement:', uepIdElement);
+            }
+            uepIdElement.value = uepId;
+
+            fetchAndDisplayChartData();
+        });
+    });
+
+    function fetchAndDisplayChartData() {
+    const departmentId = departmentIdElement;
+    const date = dateElement ? dateElement.value : null;
+    const uepId = uepIdElement ? uepIdElement.value : null;
+
+    console.log('Fetching data with:', { departmentId, date, uepId });
+
+    if (departmentId && date && uepId) {
+        fetch(`/api/get-chart-data/${departmentId}/${date}/${uepId}/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+
+                const chartData = data.chartData;
+                const targetLine = data.targetLine;
+                const production = data.production;
+                const theoTarget = data.theoTarget;
+                const emptyHours = data.emptyHours;
+                const totalHours = data.totalHours;
+
+                displayChart(chartData, targetLine);
+                displayPieCharts(production, theoTarget);
+                displayTRpie(emptyHours, totalHours);
+            })
+            .catch(error => console.error('Error fetching chart data:', error));
+    } else {
+        console.error('One or more elements are missing in the DOM');
+    }
+}
+function fetchAndDisplayChartData() {
+        const departmentId = departmentIdElement;
+        const shift = shiftElement ? shiftElement.getAttribute('data-shift') : null;
+        const date = dateElement ? dateElement.value : null;
+        const uepId = uepIdElement ? uepIdElement.value : null;
+
+        console.log('Fetching data with:', { departmentId, shift, date, uepId });
+
+        if (departmentId && shift && date && uepId) {
+            fetch(`/api/get-chart-data/${departmentId}/${shift}/${date}/${uepId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API Response:', data);
+
+                    const chartData = data.chartData;
+                    const targetLine = data.targetLine;
+                    const production = data.production;
+                    const theoTarget = data.theoTarget;
+                    const emptyHours = data.emptyHours;
+                    const totalHours = data.totalHours;
+
+                    displayChart(chartData, targetLine);
+                    displayPieCharts(production, theoTarget);
+                    displayTRpie(emptyHours, totalHours);
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
+        } else {
+            console.error('One or more elements are missing in the DOM');
+        }
+    }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentIdElement = document.querySelector('body').getAttribute('data-department-id');
+    const dateElement = document.getElementById('flatpickr');
+
+    const departmentId = parseInt(departmentIdElement, 10);
+
+    console.log('departmentId', departmentId);
+    console.log('dateElement', dateElement);
+
+    function fetchAndDisplayDepartmentChartData() {
+        const date = dateElement.value;
+
+        fetch(`/api/get-department-chart-data/${departmentId}/${date}/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+
+                const chartData = data.chartData;
+                const targetLine = data.targetLine;
+                const production = data.production;
+                const theoTarget = data.theoTarget;
+                const emptyHours = data.emptyHours;
+                const totalHours = data.totalHours;
+
+                displayDepartmentChart(chartData, targetLine);
+                displayDepartmentPieCharts(production, theoTarget);
+                displayDepartmentTRpie(emptyHours, totalHours);
+            })
+            .catch(error => console.error('Error fetching department chart data:', error));
+    }
+
+    document.querySelectorAll('.shift-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            document.querySelector('.shift-button.active').classList.remove('active');
+            this.classList.add('active');
+            fetchAndDisplayDepartmentChartData();
+        });
+    });
+
+    document.getElementById('showGraphsButton').addEventListener('click', function() {
+        fetchAndDisplayDepartmentChartData();
+    });
+
+    function displayDepartmentChart(chartData, targetLine) {
+        const chart = echarts.init(document.getElementById('proddepartmentChart'));
+
+        const targetMapping = {};
+        chartData.forEach((data, index) => {
+            targetMapping[data.hour] = targetLine[index];
+        });
+
+        const option = {
+            title: {
+                text: 'Department Production Over Time',
+                left: 'center'
+            },
+            xAxis: {
+                type: 'category',
+                data: chartData.map(data => `${data.hour}-${addHour(data.hour)}`), // Format time ranges
+                axisLabel: {
+                    formatter: function(value) {
+                        return value;
+                    }
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Number of Products',
+            },
+            series: [
+                {
+                    name: 'Production',
+                    type: 'bar',
+                    data: chartData.map(data => data.value),
+                    itemStyle: {
+                        color: function (params) {
+                            const hour = chartData[params.dataIndex].hour;
+                            const target = targetMapping[hour];
+                            return params.value < target ? '#FF6242' : '#83f28f'; // Color logic
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: '{c}'
+                    }
+                },
+                {
+                    name: 'Target',
+                    type: 'line',
+                    data: targetLine,
+                    itemStyle: {
+                        color: '#58AFDD'
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: '{c}'
+                    }
+                }
+            ]
+        };
+        chart.setOption(option);
+    }
+
+    function displayDepartmentPieCharts(production, theoTarget) {
+        const totalTheoTarget = theoTarget * 7 + 21;
+        const ropieValue = (production / totalTheoTarget) * 100;
+
+        const ropieChart = echarts.init(document.getElementById('ROpiedepartment'));
+        const ropieOption = {
+            title: {
+                text: 'RO (Ratio of Production to Goal)',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [{
+                name: 'Production',
+                type: 'pie',
+                radius: '50%',
+                data: [
+                    {
+                        value: production,
+                        name: 'Production',
+                        itemStyle: {
+                            color: '#83f28f'
+                        }
+                    },
+                    {
+                        value: totalTheoTarget - production,
+                        name: 'Remaining Target',
+                        itemStyle: {
+                            color: '#FF8164'
+                        }
+                    }
+                ],
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }]
+        };
+        ropieChart.setOption(ropieOption);
+    }
+
+    function displayDepartmentTRpie(emptyHours, totalHours) {
+        const trPieChart = echarts.init(document.getElementById('TRpiedepartment'));
+        const option = {
+            title: {
+                text: 'TR (Filled vs Empty Hours)',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            series: [
+                {
+                    name: 'Hours',
+                    type: 'pie',
+                    radius: '50%',
+                    data: [
+                        {
+                            value: totalHours - emptyHours,
+                            name: 'Filled Hours',
+                            itemStyle: {
+                                color: '#83f28f'
+                            }
+                        },
+                        {
+                            value: emptyHours,
+                            name: 'Empty Hours',
+                            itemStyle: {
+                                color: '#FFFF60'
+                            }
+                        }
+                    ],
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        trPieChart.setOption(option);
+    }
+
+    function addHour(time) {
+        const [hour, minute] = time.split(':').map(Number);
+        const newHour = (hour + 1) % 24;
+        return `${newHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+});
+

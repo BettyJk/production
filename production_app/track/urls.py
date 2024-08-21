@@ -1,7 +1,6 @@
 from django.urls import path, include
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
-
 from . import views
 from .views import (
     CustomLoginView, WelcomeView, RegisterView, InputView, DepartmentViewSet,
@@ -35,5 +34,6 @@ urlpatterns = [
     path('api/download_data/<str:period>/<int:department_id>/', download_data_api, name='download_data_api'),
     path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/', get_chart_data, name='get_chart_data'),
     path('api/get-chart-data/<int:department_id>/<str:shift>/<str:date>/<int:uep_id>/', views.get_chart_data, name='get_chart_data'),
-path('api/get-department-chart-data/<int:department_id>/<str:date>/', views.get_department_chart_data, name='get_department_chart_data'),
+    path('api/get-department-chart-data/<int:department_id>/<str:date>/', views.get_department_chart_data, name='get_department_chart_data'),
+    path('api/records/<int:department_id>/<str:shift>/<str:hour>/', department_records, name='department_records'),
 ]
