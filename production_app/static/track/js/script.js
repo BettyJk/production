@@ -130,22 +130,27 @@ function populateTable(shift, date, data) {
         tableBody.appendChild(row);
     });
 }
-
 async function openModal(record, uepId, hourRange, cellId) {
     $('#dataModal').modal('show');
 
     // Check if elements exist before setting their values
     const numberOfProductsElement = document.getElementById('number_of_products');
-    const logisticLossElement = document.getElementById('logistic_loss');
-    const productionLossElement = document.getElementById('production_loss');
+    const logisticLossLogElement = document.getElementById('logistic_loss_log');
+    const logisticLossAndonElement = document.getElementById('logistic_loss_andon');
+    const logisticLossMaiElement = document.getElementById('logistic_loss_mai');
+    const productionLossProduitElement = document.getElementById('production_loss_produit');
+    const productionLossSaturationElement = document.getElementById('production_loss_saturation');
     const logisticCommentElement = document.getElementById('logistic_comment');
     const productionCommentElement = document.getElementById('production_comment');
     const productionTheoriqueElement = document.getElementById('production_theorique');
     const productionPlanifieeElement = document.getElementById('production_planifiee');
 
     if (numberOfProductsElement) numberOfProductsElement.value = record.number_of_products || '';
-    if (logisticLossElement) logisticLossElement.value = record.losses?.[0]?.RoP || '';
-    if (productionLossElement) productionLossElement.value = record.losses?.[0]?.saturation_manque || '';
+    if (logisticLossLogElement) logisticLossLogElement.value = record.losses?.[0]?.RoP || '';
+    if (logisticLossAndonElement) logisticLossAndonElement.value = record.losses?.[0]?.RoP || '';
+    if (logisticLossMaiElement) logisticLossMaiElement.value = record.losses?.[0]?.RoP || '';
+    if (productionLossProduitElement) productionLossProduitElement.value = record.losses?.[0]?.saturation_manque || '';
+    if (productionLossSaturationElement) productionLossSaturationElement.value = record.losses?.[0]?.saturation_manque || '';
     if (logisticCommentElement) logisticCommentElement.value = record.losses?.[0]?.RoP_comment || '';
     if (productionCommentElement) productionCommentElement.value = record.losses?.[0]?.saturation_manque_comment || '';
 
@@ -172,7 +177,6 @@ async function openModal(record, uepId, hourRange, cellId) {
     document.getElementById('recordIdHiddenInput').value = record.id || '';
 }
 
-
 async function fetchGoals(uepId, shift, date) {
     try {
         const response = await fetch(`/api/goals/?uep=${uepId}&shift=${shift}&date=${date}`);
@@ -184,7 +188,6 @@ async function fetchGoals(uepId, shift, date) {
         return null; // or handle the error as needed
     }
 }
-
 
 function getCookie(name) {
     const cookies = document.cookie.split(';');
@@ -202,17 +205,38 @@ async function saveRecordAndLosses(formData) {
     const shift = formData.get('shift');
     const hour = formData.get('hour');
     const number_of_products = parseInt(formData.get('number_of_products'), 10) || 0;
-    const logistic_loss = parseFloat(formData.get('logistic_loss')) || 0;
-    const production_loss = parseFloat(formData.get('production_loss')) || 0;
-    const logistic_comment = formData.get('logistic_comment');
-    const production_comment = formData.get('production_comment');
+
+    // Retrieve logistic losses
+    const logistic_loss_log = parseFloat(formData.get('log_mancaise')) || 0;
+    const logistic_loss_andon = parseFloat(formData.get('andon_fab')) || 0;
+    const logistic_loss_mai = parseFloat(formData.get('mai')) || 0;
+
+    // Retrieve production losses
+    const production_loss_produit = parseFloat(formData.get('saturation_manque_product')) || 0;
+    const production_loss_saturation = parseFloat(formData.get('saturation')) || 0;
+
+    // Retrieve comments
+    const logistic_comment_log = formData.get('log_mancaise_comment') || '';
+    const logistic_comment_andon = formData.get('andon_fab_comment') || '';
+    const logistic_comment_mai = formData.get('mai_comment') || '';
+
+    const production_comment_product = formData.get('saturation_manque_comment_product') || '';
+    const production_comment_saturation = formData.get('saturation_comment') || '';
+
     const user = formData.get('user');
-    const existingRecordId = formData.get('recordIdHiddenInput');
+    const existingRecordId = formData.get('record_id');
 
     if (existingRecordId) {
         alert('Record already exists. Edit the record if you want to make changes.');
         return;
     }
+
+    // Calculate the total RoP and saturation/manque
+    const totalRoP = logistic_loss_log + logistic_loss_andon + logistic_loss_mai;
+    const totalSaturationManque = production_loss_produit + production_loss_saturation;
+
+    console.log("Total RoP:", totalRoP); // Debug log
+    console.log("Total Saturation/Manque:", totalSaturationManque); // Debug log
 
     const recordData = {
         user,
@@ -223,7 +247,6 @@ async function saveRecordAndLosses(formData) {
     };
 
     try {
-        // Create or update the record
         const response = await fetch('/api/records/', {
             method: 'POST',
             headers: {
@@ -243,13 +266,14 @@ async function saveRecordAndLosses(formData) {
         // Prepare loss data
         const lossData = {
             record: recordDataResponse.id,
-            RoP: logistic_loss,
-            saturation_manque: production_loss,
-            RoP_comment: logistic_comment || '',
-            saturation_manque_comment: production_comment || ''
+            RoP: totalRoP,
+            saturation_manque: totalSaturationManque,
+            RoP_comment: `${logistic_comment_log} ${logistic_comment_andon} ${logistic_comment_mai}`,
+            saturation_manque_comment: `${production_comment_product} ${production_comment_saturation}`
         };
 
-        // Create or update the losses
+        console.log("Loss Data to be sent:", lossData); // Debug log
+
         const lossResponse = await fetch('/api/losses/', {
             method: 'POST',
             headers: {

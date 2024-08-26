@@ -17,7 +17,6 @@ body {
   background: linear-gradient(112deg, rgba(40, 55, 124, 0.94) 59.3%, rgba(40, 55, 124, 0) 100%);
   backdrop-filter: blur(60px);
   width: 250px; /* Adjusted width */
-  flex-direction: column;
   font-size: 14px;
   color: #fff;
   font-weight: 500;
@@ -28,8 +27,8 @@ body {
   height: 100%;
   box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.1);
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start;
 }
 
 .sidebar ul {
@@ -40,7 +39,6 @@ body {
 }
 
 .sidebar ul li {
-  font-family: Oswald, sans-serif;
   border-radius: 15px;
   box-shadow: 0px 3.5px 5.5px 0px rgba(0, 0, 0, 0.02);
   background-color: #8a98da;
@@ -81,15 +79,11 @@ body {
   overflow-y: auto;
 }
 
-/* Header styles */
-header {
-  background-color: #28377C;
-  color: white;
-  padding: 10px;
-  text-align: center;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  width: 100%;
+/* Dropdown button styles */
+.dropdown-toggle {
+  border: 1px solid #ddd;
+  background-color: #ffffff;
+  color: #000;
 }
 
 /* Chart container styles */
@@ -104,7 +98,7 @@ header {
 .chart {
   width: 100%;
   height: 400px;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
   border: 1px solid #ddd;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
@@ -115,6 +109,7 @@ header {
 .chart:hover {
   transform: scale(1.05);
 }
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .main-content {
@@ -135,6 +130,5 @@ header {
 
   .chart {
     height: auto;
-    width : auto;
   }
 }
