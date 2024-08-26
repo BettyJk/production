@@ -115,8 +115,6 @@ header {
 .chart:hover {
   transform: scale(1.05);
 }
-
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .main-content {

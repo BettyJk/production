@@ -123,3 +123,128 @@ table.principale .table.inside:hover {
     border-top: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
 }
+/* General Modal Styling */
+.modal-content {
+    background-color: #f8f9fa; /* Light grey background for the modal */
+    border-radius: 8px; /* Rounded corners for a smooth look */
+    padding: 20px; /* Padding inside the modal for spacing */
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    color: #000000; /* Black text color */
+}
+
+.modal-header {
+    background-color: #343a40; /* Dark grey background for the header */
+    color: #ffffff; /* White text color */
+    border-bottom: 1px solid #dee2e6; /* Bottom border for separation */
+    padding: 10px 15px; /* Padding inside the header */
+    border-top-left-radius: 8px; /* Rounded corners on the top */
+    border-top-right-radius: 8px; /* Rounded corners on the top */
+}
+
+.modal-title {
+    font-weight: 600; /* Slightly bolder text for the title */
+    font-size: 1.25rem; /* Larger font size for visibility */
+    color: #ffffff; /* White text color */
+}
+
+.close {
+    color: #ffffff; /* White color for the close button */
+    opacity: 0.8; /* Slightly faded to blend with the header */
+}
+
+.close:hover {
+    opacity: 1; /* Full opacity on hover */
+}
+
+.modal-body {
+    padding: 20px; /* More padding for a spacious layout */
+    color: #000000; /* Black text color */
+}
+
+.modal-footer {
+    background-color: #f1f3f5; /* Light grey background for the footer */
+    padding: 10px 15px; /* Padding for the footer */
+    border-top: 1px solid #dee2e6; /* Top border for separation */
+    border-bottom-left-radius: 8px; /* Rounded corners on the bottom */
+    border-bottom-right-radius: 8px; /* Rounded corners on the bottom */
+    color: #000000; /* Black text color */
+}
+
+/* Input Fields */
+.modal-body input[type="text"],
+.modal-body input[type="number"] {
+    width: 100%; /* Full width input fields */
+    padding: 10px; /* Padding for input fields */
+    margin: 5px 0; /* Margin between input fields */
+    border: 1px solid #ced4da; /* Light border around inputs */
+    border-radius: 5px; /* Rounded corners for inputs */
+    background-color: #ffffff; /* White background */
+    color: #000000; /* Black text color */
+}
+
+/* Textarea Styling */
+.modal-body textarea {
+    width: 100%; /* Full width text area */
+    padding: 10px; /* Padding for text area */
+    margin: 5px 0; /* Margin between elements */
+    border: 1px solid #ced4da; /* Light border around text area */
+    border-radius: 5px; /* Rounded corners for text area */
+    background-color: #ffffff; /* White background */
+    color: #000000; /* Black text color */
+}
+
+/* Buttons */
+.modal-footer .btn {
+    padding: 8px 16px; /* Padding inside buttons */
+    border-radius: 5px; /* Rounded corners for buttons */
+    font-weight: 600; /* Bolder text for buttons */
+    margin-left: 5px; /* Space between buttons */
+    color: #ffffff; /* White text color */
+}
+
+.modal-footer .btn-save {
+    background-color: #28a745; /* Green background for save button */
+    color: #ffffff; /* White text color */
+}
+
+.modal-footer .btn-close {
+    background-color: #6c757d; /* Grey background for close button */
+    color: #ffffff; /* White text color */
+}
+
+.modal-footer .btn:hover {
+    opacity: 0.9; /* Slight opacity change on hover for buttons */
+}
+
+/* Grid Layout inside the Modal */
+.grid-container {
+    display: grid; /* Enable grid layout */
+    grid-template-columns: 1fr 1fr 1fr; /* Three equal columns */
+    gap: 10px; /* Spacing between grid items */
+}
+
+.grid-item {
+    background-color: #e9ecef; /* Light grey background for grid items */
+    padding: 10px; /* Padding inside grid items */
+    border-radius: 5px; /* Rounded corners for grid items */
+    text-align: center; /* Center text in grid items */
+    font-size: 1rem; /* Font size for grid item text */
+    color: #000000; /* Black text color */
+}
+
+.grid-item-number {
+    font-weight: bold; /* Bold text for product numbers */
+    color: #000000; /* Black text color */
+}
+
+.grid-item-loss {
+    color: #dc3545; /* Red color for loss numbers */
+}
+
+.grid-item-logistic-loss {
+    color: #ffc107; /* Yellow color for logistic losses */
+}
+
+.grid-item-production-loss {
+    color: #17a2b8; /* Teal color for production losses */
+}

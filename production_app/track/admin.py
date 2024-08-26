@@ -29,8 +29,9 @@ class RecordAdmin(admin.ModelAdmin):
 
 @admin.register(Loss)
 class LossAdmin(admin.ModelAdmin):
-    list_display = ('record', 'logistic_loss', 'production_loss', 'logistic_comment', 'production_comment')
-    search_fields = ('record__uep__name', 'record__user__username', 'logistic_loss', 'production_loss', 'logistic_comment', 'production_comment')
+    list_display = ('record', 'RoP', 'saturation_manque', 'RoP_type', 'saturation_manque_type', 'RoP_comment', 'saturation_manque_comment')
+    search_fields = ('record__uep__name', 'record__user__username', 'RoP', 'saturation_manque', 'RoP_comment', 'saturation_manque_comment')
+    list_filter = ('RoP_type', 'saturation_manque_type')
 
 @admin.register(Metric)
 class MetricAdmin(admin.ModelAdmin):

@@ -75,8 +75,8 @@
                 <a class="dropdown-item" href="#" data-download="year">Year</a>
             </div>
         </div>
-        <button class="btn btn-success ml-2" id="showGraphsButton"  data-toggle="modal"
-             data-target="#departmentModal">Show Graphs</button>
+     <button class="btn btn-success ml-2" id="showGraphsButton" data-toggle="modal" data-target="#departmentModal" title="View department-level graphs">Show Graphs</button>
+
 
 
     </div>
@@ -128,55 +128,102 @@
         </div>
 
         <!-- Modal for form submission -->
-        <div class="modal fade" id="dataModal" tabindex="-1" role="dialog" aria-labelledby="dataModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <form id="dataForm">
-                        {% csrf_token %}
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="number_of_products">Number of Products</label>
-                                <input type="number" class="form-control" id="number_of_products" name="number_of_products" placeholder="Enter number of products" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="logistic_loss">Logistic Loss</label>
-                                <input type="number" step="0.01" class="form-control" id="logistic_loss" name="logistic_loss" placeholder="Enter logistic loss">
-                            </div>
-                            <div class="form-group">
-                                <label for="production_loss">Production Loss</label>
-                                <input type="number" step="0.01" class="form-control" id="production_loss" name="production_loss" placeholder="Enter production loss">
-                            </div>
-                            <div class="form-group">
-                                <label for="logistic_comment">Logistic Comment</label>
-                                <textarea class="form-control" id="logistic_comment" name="logistic_comment" rows="3" placeholder="Enter logistic comment"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="production_comment">Production Comment</label>
-                                <textarea class="form-control" id="production_comment" name="production_comment" rows="3" placeholder="Enter production comment"></textarea>
-                            </div>
-                            <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
-                            <input type="hidden" id="uepHiddenInput" name="uep">
-                            <input type="hidden" id="shiftHiddenInput" name="shift">
-                            <input type="hidden" id="hourHiddenInput" name="hour">
-                            <input type="hidden" id="recordIdHiddenInput" name="record_id">
-                        </div>
-                        <div class="modal-footer">
-                            <pre id="jsonDisplay"></pre> <!-- JSON display area -->
-                            <button type="button" class="btn btn-secondary btn-close" data-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-danger btn-delete">Delete</button>
-                            <button type="submit" class="btn btn-primary">Save</button>
-                        </div>
-                    </form>
+ <!-- Modal for form submission -->
+<div class="modal fade" id="dataModal" tabindex="-1" role="dialog" aria-labelledby="dataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <form id="dataForm">
+                {% csrf_token %}
+                <!-- Hidden inputs -->
+                <input type="hidden" id="userHiddenInput" name="user" value="{{ user.id }}">
+                <input type="hidden" id="uepHiddenInput" name="uep">
+                <input type="hidden" id="shiftHiddenInput" name="shift">
+                <input type="hidden" id="hourHiddenInput" name="hour">
+                <input type="hidden" id="recordIdHiddenInput" name="record_id">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataModalLabel">Enter Data</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-            </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="number_of_products">
+                                    <i class="fa fa-info-circle"></i> Nb Produit
+                                </label>
+                                <input type="number" class="form-control" id="number_of_products" name="number_of_products" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="production_planifiee">Production Planifiée</label>
+                                <input type="text" class="form-control" id="production_planifiee" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="production_theorique">Production Théorique</label>
+                                <input type="text" class="form-control" id="production_theorique" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5 class="text-center">Saturation/Manque</h5>
+                            <div class="form-group">
+                                <label for="saturation_manque_product">
+                                    <i class="fa fa-info-circle"></i> Produit / Process
+                                </label>
+                                <input type="text" class="form-control" id="saturation_manque_product" name="saturation_manque_product">
+                                <textarea class="form-control mt-2" id="saturation_manque_comment_product" name="saturation_manque_comment_product" rows="2" placeholder="Commentaire"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="saturation">
+                                    <i class="fa fa-info-circle"></i> Saturation
+                                </label>
+                                <input type="text" class="form-control" id="saturation" name="saturation">
+                                <textarea class="form-control mt-2" id="saturation_comment" name="saturation_comment" rows="2" placeholder="Commentaire"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-center">RoP</h5>
+                            <div class="form-group">
+                                <label for="log_mancaise">
+                                    <i class="fa fa-info-circle"></i> LOG/MANCAISSE
+                                </label>
+                                <input type="text" class="form-control" id="log_mancaise" name="log_mancaise">
+                                <textarea class="form-control mt-2" id="log_mancaise_comment" name="log_mancaise_comment" rows="2" placeholder="Commentaire"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="andon_fab">
+                                    <i class="fa fa-info-circle"></i> ANDON/FAB
+                                </label>
+                                <input type="text" class="form-control" id="andon_fab" name="andon_fab">
+                                <textarea class="form-control mt-2" id="andon_fab_comment" name="andon_fab_comment" rows="2" placeholder="Commentaire"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="mai">
+                                    <i class="fa fa-info-circle"></i> MAI
+                                </label>
+                                <input type="text" class="form-control" id="mai" name="mai">
+                                <textarea class="form-control mt-2" id="mai_comment" name="mai_comment" rows="2" placeholder="Commentaire"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                    <button type="submit" class="btn btn-primary">Envoyer</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
+   </div>
 <!-- Modal for UEP Information -->
         <div class="modal fade" id="uepModal" tabindex="-1" aria-labelledby="uepModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

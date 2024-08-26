@@ -78,13 +78,29 @@ class Record(models.Model):
 
     def __str__(self):
         return f"Record for UEP {self.uep} at {self.hour}"
-
 class Loss(models.Model):
+    SATURATION_MANQUE_CHOICES = [
+        ('Produit/Process', 'Produit/Process'),
+        ('Saturation', 'Saturation'),
+    ]
+
+    ROP_CHOICES = [
+        ('LOG/MANCAISSE', 'LOG/MANCAISSE'),
+        ('ANDON/FAB', 'ANDON/FAB'),
+        ('MAI', 'MAI'),
+    ]
+
     record = models.ForeignKey(Record, related_name='losses', on_delete=models.CASCADE)
-    logistic_loss = models.FloatField(default=0)
-    production_loss = models.FloatField(default=0)
-    logistic_comment = models.TextField(blank=True, default='' )
-    production_comment = models.TextField(blank=True, default='')
+
+    RoP = models.FloatField(default=0)  # Renamed logistic_loss to RoP
+    saturation_manque = models.FloatField(default=0)  # Renamed production_loss to Saturation/Manque
+
+    RoP_type = models.CharField(max_length=50, choices=ROP_CHOICES, default='LOG/MANCAISSE')
+    saturation_manque_type = models.CharField(max_length=50, choices=SATURATION_MANQUE_CHOICES,
+                                              default='Produit/Process')
+
+    RoP_comment = models.TextField(blank=True, default='')  # Comment for RoP type
+    saturation_manque_comment = models.TextField(blank=True, default='')  # Comment for Saturation/Manque type
 
     def __str__(self):
         return f"Loss for Record ID {self.record.id}"

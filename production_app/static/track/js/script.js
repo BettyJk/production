@@ -56,7 +56,6 @@ async function fetchAndDisplayData(shift, date) {
         console.error('Error fetching data:', error);
     }
 }
-
 function populateTable(shift, date, data) {
     const tableBody = document.getElementById('table-body');
     if (!tableBody) {
@@ -68,7 +67,6 @@ function populateTable(shift, date, data) {
 
     const recordsByHour = {};
     data.forEach(record => {
-        // Extract hour directly from the UTC timestamp without converting to local time
         const utcHour = record.hour.slice(11, 16); // Extract hour:minute from 'YYYY-MM-DDTHH:MM:SSZ'
         console.log(`Original hour (UTC): ${record.hour}, Treated as Local hour: ${utcHour}`);
 
@@ -102,9 +100,9 @@ function populateTable(shift, date, data) {
 
             if (numberOfProducts !== 0) {
                 const losses = record.losses || [];
-                logisticLoss = losses.length > 0 ? losses[0].logistic_loss : 0;
-                productionLoss = losses.length > 0 ? losses[0].production_loss : 0;
-                totalLoss = 33 - numberOfProducts; // Example calculation
+                logisticLoss = losses.length > 0 ? losses[0].RoP : 0;
+                productionLoss = losses.length > 0 ? losses[0].saturation_manque : 0;
+                totalLoss = logisticLoss + productionLoss; // Adjusted logic for total loss calculation
 
                 const RO = (numberOfProducts / 33) * 100;
                 if (RO < 92) {
@@ -133,30 +131,61 @@ function populateTable(shift, date, data) {
     });
 }
 
-function openModal(record, uepId, hourRange, cellId) {
+async function openModal(record, uepId, hourRange, cellId) {
     $('#dataModal').modal('show');
 
-    // Populate the modal with the record data
-    document.getElementById('number_of_products').value = record.number_of_products || '';
-    const losses = record.losses || [];
-    if (losses.length > 0) {
-        document.getElementById('logistic_loss').value = losses[0].logistic_loss || '';
-        document.getElementById('production_loss').value = losses[0].production_loss || '';
-        document.getElementById('logistic_comment').value = losses[0].logistic_comment || '';
-        document.getElementById('production_comment').value = losses[0].production_comment || '';
-    } else {
-        document.getElementById('logistic_loss').value = '';
-        document.getElementById('production_loss').value = '';
-        document.getElementById('logistic_comment').value = '';
-        document.getElementById('production_comment').value = '';
+    // Check if elements exist before setting their values
+    const numberOfProductsElement = document.getElementById('number_of_products');
+    const logisticLossElement = document.getElementById('logistic_loss');
+    const productionLossElement = document.getElementById('production_loss');
+    const logisticCommentElement = document.getElementById('logistic_comment');
+    const productionCommentElement = document.getElementById('production_comment');
+    const productionTheoriqueElement = document.getElementById('production_theorique');
+    const productionPlanifieeElement = document.getElementById('production_planifiee');
+
+    if (numberOfProductsElement) numberOfProductsElement.value = record.number_of_products || '';
+    if (logisticLossElement) logisticLossElement.value = record.losses?.[0]?.RoP || '';
+    if (productionLossElement) productionLossElement.value = record.losses?.[0]?.saturation_manque || '';
+    if (logisticCommentElement) logisticCommentElement.value = record.losses?.[0]?.RoP_comment || '';
+    if (productionCommentElement) productionCommentElement.value = record.losses?.[0]?.saturation_manque_comment || '';
+
+    try {
+        // Fetch and populate goal data
+        const goals = await fetchGoals(uepId, selectedShift, selectedDate);
+        if (goals) {
+            if (productionTheoriqueElement) productionTheoriqueElement.value = goals.theoretical_goal || '';
+            if (productionPlanifieeElement) productionPlanifieeElement.value = goals.planned_goal || '';
+        } else {
+            // Clear the goal fields if no goals data is found
+            if (productionTheoriqueElement) productionTheoriqueElement.value = '';
+            if (productionPlanifieeElement) productionPlanifieeElement.value = '';
+        }
+    } catch (error) {
+        console.error('Failed to fetch goals:', error);
+        // Optionally, handle the error (e.g., show an alert to the user)
     }
 
     // Populate hidden fields with relevant data
-    document.getElementById('uepHiddenInput').value = uepId;
-    document.getElementById('shiftHiddenInput').value = selectedShift;
-    document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}`;
+    document.getElementById('uepHiddenInput').value = uepId || '';
+    document.getElementById('shiftHiddenInput').value = selectedShift || '';
+    document.getElementById('hourHiddenInput').value = `${selectedDate} ${hourRange.split('-')[0]}` || '';
     document.getElementById('recordIdHiddenInput').value = record.id || '';
 }
+
+
+async function fetchGoals(uepId, shift, date) {
+    try {
+        const response = await fetch(`/api/goals/?uep=${uepId}&shift=${shift}&date=${date}`);
+        if (!response.ok) throw new Error(`Error fetching goals: ${response.status}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching goals:', error);
+        return null; // or handle the error as needed
+    }
+}
+
+
 function getCookie(name) {
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {
@@ -167,6 +196,7 @@ function getCookie(name) {
     }
     return null;
 }
+
 async function saveRecordAndLosses(formData) {
     const uep = formData.get('uep');
     const shift = formData.get('shift');
@@ -193,6 +223,7 @@ async function saveRecordAndLosses(formData) {
     };
 
     try {
+        // Create or update the record
         const response = await fetch('/api/records/', {
             method: 'POST',
             headers: {
@@ -209,14 +240,16 @@ async function saveRecordAndLosses(formData) {
 
         const recordDataResponse = await response.json();
 
+        // Prepare loss data
         const lossData = {
             record: recordDataResponse.id,
-            logistic_loss,
-            production_loss,
-            logistic_comment,
-            production_comment
+            RoP: logistic_loss,
+            saturation_manque: production_loss,
+            RoP_comment: logistic_comment || '',
+            saturation_manque_comment: production_comment || ''
         };
 
+        // Create or update the losses
         const lossResponse = await fetch('/api/losses/', {
             method: 'POST',
             headers: {
@@ -227,8 +260,8 @@ async function saveRecordAndLosses(formData) {
         });
 
         if (!lossResponse.ok) {
-            const lossErrorData = await lossResponse.text();
-            throw new Error(`Error creating/updating loss: ${lossErrorData}`);
+            const lossErrorData = await lossResponse.json();
+            throw new Error(`Error creating/updating loss: ${JSON.stringify(lossErrorData)}`);
         }
 
         const lossDataResponse = await lossResponse.json();
@@ -246,53 +279,55 @@ async function saveRecordAndLosses(formData) {
     }
 }
 
-    function setupModal() {
-        const closeModalButton = document.querySelector('#dataModal .close');
-        if (closeModalButton) {
-            closeModalButton.addEventListener('click', function() {
-                $('#dataModal').modal('hide');
-            });
-        }
 
-        const deleteRecordButton = document.querySelector('#deleteRecordButton');
-        if (deleteRecordButton) {
-            deleteRecordButton.addEventListener('click', function() {
-                const recordId = document.getElementById('recordIdHiddenInput').value;
-                if (recordId) {
-                    deleteRecord(recordId);
-                }
-            });
-        }
+function setupModal() {
+    const closeModalButton = document.querySelector('#dataModal .close');
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', function() {
+            $('#dataModal').modal('hide');
+        });
     }
-    async function deleteRecord(recordId) {
-        try {
-            const response = await fetch(`/api/records/${recordId}/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
 
-            if (response.ok) {
-                $('#dataModal').modal('hide');
-                fetchAndDisplayData(selectedShift, selectedDate);
-            } else {
-                console.error('Error deleting record:', response.statusText);
-                alert('Failed to delete record.');
+    const deleteRecordButton = document.querySelector('#deleteRecordButton');
+    if (deleteRecordButton) {
+        deleteRecordButton.addEventListener('click', function() {
+            const recordId = document.getElementById('recordIdHiddenInput').value;
+            if (recordId) {
+                deleteRecord(recordId);
             }
-        } catch (error) {
-            console.error('Error deleting record:', error);
-            alert('Failed to delete record.');
-        }
+        });
     }
-    function setupFormSubmission() {
+}
+
+async function deleteRecord(recordId) {
+    try {
+        const response = await fetch(`/api/records/${recordId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (response.ok) {
+            $('#dataModal').modal('hide');
+            fetchAndDisplayData(selectedShift, selectedDate);
+        } else {
+            console.error('Error deleting record:', response.statusText);
+            alert('Error deleting record.');
+        }
+    } catch (error) {
+        console.error('Error deleting record:', error);
+        alert('Error deleting record.');
+    }
+}
+
+function setupFormSubmission() {
     const form = document.getElementById('dataForm');
     if (form) {
         form.addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(form);
             saveRecordAndLosses(formData);
-            // The fetchAndDisplayData call is now inside saveRecordAndLosses
         });
     }
 }
